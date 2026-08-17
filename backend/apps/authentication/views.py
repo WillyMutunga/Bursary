@@ -7,9 +7,20 @@ from .models import User
 from .serializers import UserSerializer, UserUpdateSerializer, CustomTokenObtainPairSerializer
 import random
 
+import traceback
+
 class CustomLoginView(TokenObtainPairView):
     permission_classes = (AllowAny,)
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            return Response({
+                'detail': f'Login Error: {str(e)}',
+                'traceback': traceback.format_exc()
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()

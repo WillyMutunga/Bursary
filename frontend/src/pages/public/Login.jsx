@@ -38,7 +38,15 @@ export default function Login() {
       }
 
       if (!response.ok) {
-        throw new Error('Invalid National ID or password');
+        let errMsg = 'Invalid National ID or password';
+        try {
+          const errData = await response.json();
+          if (errData.detail) errMsg = errData.detail;
+          else if (errData.error) errMsg = errData.error;
+        } catch (e) {
+          // Keep default
+        }
+        throw new Error(errMsg);
       }
 
       const data = await response.json();
