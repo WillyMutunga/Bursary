@@ -31,7 +31,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /bursary.skysoftsystems.co.ke/
+          server-dir: /
           local-dir: ./frontend/dist/
 
       - name: 🐍 Deploy Backend Django Code via FTP to cPanel
@@ -40,7 +40,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /bursary.skysoftsystems.co.ke/backend/
+          server-dir: /backend/
           local-dir: ./backend/
           exclude: |
             **/.git*
