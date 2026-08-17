@@ -25,3 +25,33 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('first_name', 'last_name', 'email', 'phone_number')
+
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.db.models import Q
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        username_or_id = attrs.get('username')
+        password = attrs.get('password')
+
+        if username_or_id and password:
+            user = User.objects.filter(
+                Q(username__iexact=username_or_id) |
+                Q(national_id__iexact=username_or_id) |
+                Q(phone_number__iexact=username_or_id) |
+                Q(email__iexact=username_or_id)
+            ).first()
+
+            if user and user.check_password(password):
+                if not user.is_active:
+                    raise serializers.ValidationError({'detail': 'User account is disabled.'})
+                refresh = self.get_token(user)
+                return {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                    'username': user.username,
+                    'role': user.role
+                }
+
+        raise serializers.ValidationError({'detail': 'No active account found with the given credentials'})
