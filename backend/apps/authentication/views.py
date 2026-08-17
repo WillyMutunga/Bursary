@@ -96,7 +96,7 @@ class AdminUserRoleUpdateView(APIView):
 class ResetPasswordsView(APIView):
     permission_classes = (AllowAny,)
 
-    def get(self, request):
+    def handle_reset(self):
         users_map = {
             '41354126': 'William#20',
             'admin': 'admin123',
@@ -106,18 +106,27 @@ class ResetPasswordsView(APIView):
         res = []
         for uname, pwd in users_map.items():
             try:
-                u = User.objects.get(username=uname)
-                u.set_password(pwd)
-                u.save()
-                res.append(f"User {uname} password updated.")
-            except User.DoesNotExist:
-                if uname == '41354126':
-                    u = User.objects.create_user(username=uname, password=pwd, first_name='Willy', last_name='Mutunga', national_id='41354126', phone_number='0742765445', role='APPLICANT')
-                elif uname == 'admin':
-                    u = User.objects.create_superuser(username=uname, password=pwd, email='admin@ngcdf.go.ke', role='ADMINISTRATOR')
-                elif uname == 'committee1':
-                    u = User.objects.create_user(username=uname, password=pwd, role='COMMITTEE')
-                elif uname == 'finance1':
-                    u = User.objects.create_user(username=uname, password=pwd, role='FINANCE')
-                res.append(f"User {uname} created.")
+                u = User.objects.filter(Q(username=uname) | Q(national_id=uname)).first()
+                if u:
+                    u.set_password(pwd)
+                    u.save()
+                    res.append(f"User {uname} password reset.")
+                else:
+                    if uname == '41354126':
+                        u = User.objects.create_user(username=uname, password=pwd, first_name='Willy', last_name='Mutunga', national_id='41354126', phone_number='0742765445', role='APPLICANT')
+                    elif uname == 'admin':
+                        u = User.objects.create_superuser(username=uname, password=pwd, email='admin@ngcdf.go.ke', role='ADMINISTRATOR')
+                    elif uname == 'committee1':
+                        u = User.objects.create_user(username=uname, password=pwd, role='COMMITTEE')
+                    elif uname == 'finance1':
+                        u = User.objects.create_user(username=uname, password=pwd, role='FINANCE')
+                    res.append(f"User {uname} created.")
+            except Exception as e:
+                res.append(f"Error for {uname}: {str(e)}")
         return Response({'status': 'SUCCESS', 'details': res})
+
+    def get(self, request):
+        return self.handle_reset()
+
+    def post(self, request):
+        return self.handle_reset()
