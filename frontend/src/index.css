@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0F6B38;       /* Deep Official Kenya Emerald Green */
+  --color-primary-dark: #094724;  /* Dark Forest Green */
+  --color-red-gov: #C8102E;       /* Kenya Flag Crimson Red */
+  --color-red-gov-dark: #9B0B21;  /* Dark Red */
+  --color-black-gov: #121820;     /* Deep Onyx Black */
+  --color-gold: #DAA520;          /* Official Seal Gold Accent */
+  --color-light-bg: #F4F7F5;      /* Clean Gov Off-White Slate */
+  
+  --color-navy: #121820;
+  --color-success: #0F6B38;
+  --color-warning: #D97706;
+  --color-danger: #C8102E;
+  
+  --font-family-sans: "Inter", "Poppins", sans-serif;
+}
+
+body {
+  background-color: #F4F7F5;
+  color: #121820;
+  font-family: "Inter", "Poppins", sans-serif;
+}
