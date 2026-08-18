@@ -139,14 +139,26 @@ export default function AdminDashboard() {
   const handleToggleWindow = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(API_BASE_URL + '/api/v1/applications/toggle_window/', {
+      const targetState = !appWindowOpen;
+      
+      let res = await fetch(API_BASE_URL + '/api/v1/applications/toggle_window/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ is_window_open: !appWindowOpen })
+        body: JSON.stringify({ is_window_open: targetState })
       });
+
+      if (!res.ok) {
+        res = await fetch(`${API_BASE_URL}/api/v1/applications/toggle_window/?toggle=true&is_window_open=${targetState}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      }
+
       if (res.ok) {
         const data = await res.json();
         setAppWindowOpen(data.is_window_open);

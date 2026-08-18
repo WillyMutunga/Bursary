@@ -6,7 +6,7 @@ router = DefaultRouter()
 router.register(r'applications', ApplicationViewSet, basename='application')
 
 urlpatterns = [
-    path('applications/toggle_window/', ApplicationViewSet.as_view({'post': 'toggle_window'}), name='toggle-window'),
-    path('applications/toggle_window', ApplicationViewSet.as_view({'post': 'toggle_window'})),
+    path('applications/toggle_window/', ApplicationViewSet.as_view({'get': 'toggle_window', 'post': 'toggle_window'}), name='toggle-window'),
+    path('applications/toggle_window', ApplicationViewSet.as_view({'get': 'toggle_window', 'post': 'toggle_window'})),
     path('', include(router.urls)),
 ]

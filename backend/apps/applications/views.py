@@ -181,7 +181,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             'is_window_open': budget_obj.is_window_open
         })
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['get', 'post'])
     def toggle_window(self, request):
         user = self.request.user
         if user.role not in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'] and not user.is_superuser:
@@ -189,19 +189,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             
         ensure_budget_window_column()
         budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
-        is_open = request.data.get('is_window_open')
-        if is_open is not None:
-            budget_obj.is_window_open = bool(is_open)
-        else:
-            budget_obj.is_window_open = not budget_obj.is_window_open
-        budget_obj.save()
 
-        log_audit(
-            user=user,
-            action="APPLICATION_WINDOW_TOGGLE",
-            details=f"Application window status set to {'OPEN' if budget_obj.is_window_open else 'LOCKED'}.",
-            request=request
-        )
+        if request.method == 'POST' or request.query_params.get('toggle') == 'true':
+            is_open = request.data.get('is_window_open')
+            if is_open is not None:
+                budget_obj.is_window_open = bool(is_open)
+            else:
+                budget_obj.is_window_open = not budget_obj.is_window_open
+            budget_obj.save()
+
+            log_audit(
+                user=user,
+                action="APPLICATION_WINDOW_TOGGLE",
+                details=f"Application window status set to {'OPEN' if budget_obj.is_window_open else 'LOCKED'}.",
+                request=request
+            )
 
         return Response({
             'status': 'Window status updated successfully',
