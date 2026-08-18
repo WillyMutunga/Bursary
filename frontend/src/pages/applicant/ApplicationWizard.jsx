@@ -429,10 +429,10 @@ export default function ApplicationWizard() {
             </div>
           )}
 
-          {/* Steps 3 to 7: Household & Vulnerability Info */}
-          {currentStep >= 2 && currentStep <= 6 && (
+          {/* Step 3: Parent & Guardian Details */}
+          {currentStep === 2 && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              <h2 className="text-lg font-bold text-navy border-b pb-2">{steps[currentStep].title} Details</h2>
+              <h2 className="text-lg font-bold text-navy border-b pb-2">Step 3: Parent & Guardian Details</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Father's Status</label>
@@ -447,6 +447,16 @@ export default function ApplicationWizard() {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Father's Full Name / Occupation</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. John Mutua (Peasant Farmer)" 
+                    value={formData.father_name || ''} 
+                    onChange={(e) => handleInputChange('father_name', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Mother's Status</label>
                   <select 
                     value={formData.mother_status || 'ALIVE'} 
@@ -459,24 +469,227 @@ export default function ApplicationWizard() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Requested Amount (KSh)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Mother's Full Name / Occupation</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Mary Kamau (Small Trader)" 
+                    value={formData.mother_name || ''} 
+                    onChange={(e) => handleInputChange('mother_name', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Parent / Guardian Contact Phone</label>
+                  <input 
+                    type="tel" 
+                    placeholder="e.g. 0712345678" 
+                    value={formData.guardian_phone || ''} 
+                    onChange={(e) => handleInputChange('guardian_phone', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Household & Siblings Info */}
+          {currentStep === 3 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h2 className="text-lg font-bold text-navy border-b pb-2">Step 4: Household & Sibling Information</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Total Siblings in Family</label>
                   <input 
                     type="number" 
-                    placeholder="25000" 
+                    placeholder="e.g. 4" 
+                    value={formData.siblings_in_school || formData.siblings_count || ''} 
+                    onChange={(e) => handleInputChange('siblings_in_school', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Siblings Currently in School/College</label>
+                  <input 
+                    type="number" 
+                    placeholder="e.g. 2" 
+                    value={formData.siblings_in_secondary || ''} 
+                    onChange={(e) => handleInputChange('siblings_in_secondary', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Primary Household Breadwinner</label>
+                  <select 
+                    value={formData.household_breadwinner || 'Both Parents'} 
+                    onChange={(e) => handleInputChange('household_breadwinner', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  >
+                    <option value="Both Parents">Both Parents</option>
+                    <option value="Father Only">Father Only</option>
+                    <option value="Mother Only">Mother Only</option>
+                    <option value="Self / Guardian">Self / Guardian</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Household Residence Type</label>
+                  <select 
+                    value={formData.residence_type || 'Permanent'} 
+                    onChange={(e) => handleInputChange('residence_type', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  >
+                    <option value="Permanent">Permanent House</option>
+                    <option value="Semi-Permanent">Semi-Permanent</option>
+                    <option value="Rented">Rented House</option>
+                    <option value="Mud/Thatch">Mud / Thatch Structure</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Financial Needs & Fees */}
+          {currentStep === 4 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h2 className="text-lg font-bold text-navy border-b pb-2">Step 5: Financial & Tuition Fee Details</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Requested Bursary Amount (KSh)</label>
+                  <input 
+                    type="number" 
+                    placeholder="e.g. 25000" 
                     value={formData.requested_amount || ''} 
                     onChange={(e) => handleInputChange('requested_amount', e.target.value)}
                     className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Current Fee Balance (KSh)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Current Outstanding Fee Balance (KSh)</label>
                   <input 
                     type="number" 
-                    placeholder="35000" 
+                    placeholder="e.g. 35000" 
                     value={formData.fee_balance || ''} 
                     onChange={(e) => handleInputChange('fee_balance', e.target.value)}
                     className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Estimated Monthly Household Income (KSh)</label>
+                  <input 
+                    type="number" 
+                    placeholder="e.g. 15000" 
+                    value={formData.family_income || ''} 
+                    onChange={(e) => handleInputChange('family_income', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Primary Source of Income</label>
+                  <select 
+                    value={formData.income_source || 'Farming'} 
+                    onChange={(e) => handleInputChange('income_source', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  >
+                    <option value="Farming">Farming / Agriculture</option>
+                    <option value="Employment">Formal Employment</option>
+                    <option value="Business">Business / Trade</option>
+                    <option value="Casual Labor">Casual Labor</option>
+                    <option value="Remittances/None">Remittances / None</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 6: Vulnerability & Special Circumstances */}
+          {currentStep === 5 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h2 className="text-lg font-bold text-navy border-b pb-2">Step 6: Vulnerability & Special Circumstances</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Applicant Living with Disability?</label>
+                  <select 
+                    value={formData.applicant_disability || 'false'} 
+                    onChange={(e) => handleInputChange('applicant_disability', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Disability Details / NCPWD No. (If Yes)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Physical Disability (NCPWD/12345)" 
+                    value={formData.disability_type || ''} 
+                    onChange={(e) => handleInputChange('disability_type', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Parent / Guardian Living with Disability?</label>
+                  <select 
+                    value={formData.parent_disability || 'false'} 
+                    onChange={(e) => handleInputChange('parent_disability', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Chronic Illness / Health Condition in Family?</label>
+                  <select 
+                    value={formData.chronic_illness || 'false'} 
+                    onChange={(e) => handleInputChange('chronic_illness', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 7: Previous Support History */}
+          {currentStep === 6 && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h2 className="text-lg font-bold text-navy border-b pb-2">Step 7: Previous Support & Bursary History</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Received NG-CDF Bursary Previously?</label>
+                  <select 
+                    value={formData.prev_bursary_received || 'false'} 
+                    onChange={(e) => handleInputChange('prev_bursary_received', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Previous Bursary Amount Received (KSh)</label>
+                  <input 
+                    type="number" 
+                    placeholder="e.g. 10000" 
+                    value={formData.prev_bursary_amount || ''} 
+                    onChange={(e) => handleInputChange('prev_bursary_amount', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Other Financial Support Received (HELB / County / NGO)</label>
+                  <select 
+                    value={formData.other_financial_aid || 'None'} 
+                    onChange={(e) => handleInputChange('other_financial_aid', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-3 text-xs font-bold text-navy focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  >
+                    <option value="None">None</option>
+                    <option value="County Bursary">Makueni County Bursary</option>
+                    <option value="HELB">HELB Loan / Scholarship</option>
+                    <option value="Church/NGO">Church / NGO Scholarship</option>
+                  </select>
                 </div>
               </div>
             </div>
