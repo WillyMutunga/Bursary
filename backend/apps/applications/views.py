@@ -8,22 +8,27 @@ from .serializers import ApplicationSerializer, ApplicantProfileSerializer, Audi
 from .engine import VerificationEngine
 from .notifications import send_application_status_email
 
-from django.db import connection
+import os, json
+from django.conf import settings
 
-def ensure_budget_window_column():
-    from django.db import connection
+STATUS_FILE = os.path.join(settings.BASE_DIR, 'app_window_status.json')
+
+def get_app_window_status():
     try:
-        connection.rollback()
+        if os.path.exists(STATUS_FILE):
+            with open(STATUS_FILE, 'r') as f:
+                data = json.load(f)
+                return bool(data.get('is_window_open', True))
     except Exception:
         pass
+    return True
+
+def set_app_window_status(is_open):
     try:
-        with connection.cursor() as cursor:
-            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+        with open(STATUS_FILE, 'w') as f:
+            json.dump({'is_window_open': bool(is_open)}, f)
     except Exception as e:
-        try:
-            connection.rollback()
-        except Exception:
-            pass
+        print("Error saving window status file:", e)
 
 def log_audit(user, action, details, request=None):
     ip = None
@@ -78,15 +83,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             qs = qs.filter(polling_station__icontains=polling_filter)
 
         return qs.order_by('-created_at')
-
-from django.core.cache import cache
-
-def get_app_window_status():
-    val = cache.get('bursary_app_window_open')
-    return True if val is None else bool(val)
-
-def set_app_window_status(is_open):
-    cache.set('bursary_app_window_open', bool(is_open), timeout=None)
 
     def create(self, request, *args, **kwargs):
         user = request.user
