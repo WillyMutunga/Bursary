@@ -22,78 +22,79 @@ export default function Register() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const safeFetchJson = async (url, options = {}) => {
+    try {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = null;
+      }
+      return { ok: res.ok && data !== null, status: res.status, data, rawText: text };
+    } catch (e) {
+      return { ok: false, status: 0, data: null, error: e.message };
+    }
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      let res;
-      try {
-        res = await fetch(API_BASE_URL + '/api/v1/auth/register/', {
+      const payload = {
+        username: formData.idNumber,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        national_id: formData.idNumber,
+        email: formData.email || `${formData.idNumber}@student.go.ke`,
+        phone_number: formData.phone,
+        password: formData.password,
+        role: 'APPLICANT'
+      };
+
+      let result = await safeFetchJson(API_BASE_URL + '/api/v1/auth/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!result.ok) {
+        result = await safeFetchJson('/v1/auth/register/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: formData.idNumber,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            national_id: formData.idNumber,
-            email: formData.email || `${formData.idNumber}@student.go.ke`,
-            phone_number: formData.phone,
-            password: formData.password,
-            role: 'APPLICANT'
-          })
+          body: JSON.stringify(payload)
         });
-      } catch (err) {
-        res = null;
       }
 
-      if (!res || !res.ok) {
-        // Fallback for cPanel URL rewrite
-        const res2 = await fetch(API_BASE_URL + '/v1/auth/register/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: formData.idNumber,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            national_id: formData.idNumber,
-            email: formData.email || `${formData.idNumber}@student.go.ke`,
-            phone_number: formData.phone,
-            password: formData.password,
-            role: 'APPLICANT'
-          })
-        });
-        if (res2.ok) {
-          res = res2;
+      if (!result.ok) {
+        const errData = result.data || {};
+        if (errData.username || errData.national_id) {
+          throw new Error(`An account with National ID ${formData.idNumber} is already registered. Please sign in.`);
+        } else if (errData.email) {
+          throw new Error(`Email address ${formData.email} is already registered. Please use another email or sign in.`);
+        } else if (errData.password) {
+          throw new Error(`Password error: ${Array.isArray(errData.password) ? errData.password.join(' ') : errData.password}`);
+        } else if (errData.error) {
+          throw new Error(errData.error);
+        } else if (errData.detail) {
+          throw new Error(errData.detail);
         } else {
-          let errData = {};
-          try {
-            const rawText = await (res ? res : res2).text();
-            errData = JSON.parse(rawText);
-          } catch (e) {
-            errData = {};
-          }
-          if (errData.username || errData.national_id) {
-            throw new Error(`An account with National ID ${formData.idNumber} is already registered. Please sign in to your existing account.`);
-          } else if (errData.password) {
-            throw new Error(`Password error: ${errData.password.join(' ')}`);
-          } else {
-            const detail = typeof errData === 'object' && Object.keys(errData).length > 0 ? Object.values(errData).flat().join(' ') : 'Registration submitted! Please proceed to login.';
-            throw new Error(detail);
-          }
+          throw new Error("Registration error. Please check your details or sign in if already registered.");
         }
       }
 
-      // 2. Request OTP (Mock)
+      // Request OTP
       try {
-        await fetch(API_BASE_URL + '/api/v1/auth/otp/request/', {
+        await safeFetchJson(API_BASE_URL + '/api/v1/auth/otp/request/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone_number: formData.phone })
+          body: JSON.stringify({ phone_number: formData.phone, email: formData.email })
         });
       } catch (e) {
-        // Ignore optional OTP request failure in dev
+        // Optional OTP dispatch failure ignored
       }
 
       setShowOtp(true);

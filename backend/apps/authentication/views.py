@@ -18,23 +18,24 @@ class CustomLoginView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         try:
-            from django.core.management import call_command
-            call_command('migrate', interactive=False)
-        except Exception:
-            pass
-
-        try:
             return super().post(request, *args, **kwargs)
         except Exception as e:
             return Response({
-                'detail': f'Login Error: {str(e)}',
-                'traceback': traceback.format_exc()
+                'detail': f'Login Authentication Error: {str(e)}'
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = UserSerializer
+
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            return Response({
+                'error': f'Registration failed: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 class OTPRequestView(APIView):
     permission_classes = (AllowAny,)

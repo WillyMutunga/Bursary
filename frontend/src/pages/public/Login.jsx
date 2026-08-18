@@ -12,71 +12,76 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  const safeFetchJson = async (url, options = {}) => {
+    try {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = null;
+      }
+      return { ok: res.ok && data !== null, status: res.status, data, rawText: text };
+    } catch (e) {
+      return { ok: false, status: 0, data: null, error: e.message };
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      let response;
-      try {
-        response = await fetch(API_BASE_URL + '/api/v1/auth/login/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        });
-      } catch (err) {
-        response = null;
-      }
+      let result = await safeFetchJson(API_BASE_URL + '/api/v1/auth/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
 
-      if (!response || !response.ok) {
-        response = await fetch(API_BASE_URL + '/v1/auth/login/', {
+      if (!result.ok) {
+        result = await safeFetchJson('/v1/auth/login/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       }
 
-      if (!response.ok) {
-        let errMsg = 'Invalid National ID or password';
-        try {
-          const errData = await response.json();
-          if (errData.detail) errMsg = errData.detail;
-          else if (errData.error) errMsg = errData.error;
-        } catch (e) {
-          // Keep default
-        }
+      if (!result.ok || !result.data) {
+        let errMsg = 'Invalid National ID, email or password. Please check your credentials.';
+        if (result.data && result.data.detail) errMsg = result.data.detail;
+        else if (result.data && result.data.error) errMsg = result.data.error;
         throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      const data = result.data;
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
       
       // Fetch user role
-      let userRes;
-      try {
-        userRes = await fetch(API_BASE_URL + '/api/v1/auth/me/', {
-            headers: { 'Authorization': `Bearer ${data.access}` }
-        });
-      } catch (e) {
-        userRes = await fetch(API_BASE_URL + '/v1/auth/me/', {
-            headers: { 'Authorization': `Bearer ${data.access}` }
+      let userResult = await safeFetchJson(API_BASE_URL + '/api/v1/auth/me/', {
+        headers: { 'Authorization': `Bearer ${data.access}` }
+      });
+      if (!userResult.ok) {
+        userResult = await safeFetchJson('/v1/auth/me/', {
+          headers: { 'Authorization': `Bearer ${data.access}` }
         });
       }
-      if (userRes.ok) {
-          const userData = await userRes.json();
-          if (userData.role === 'ADMINISTRATOR' || userData.role === 'SUPER_ADMINISTRATOR' || userData.role === 'ADMIN') {
-              navigate('/admin');
-          } else if (userData.role === 'COMMITTEE') {
-              navigate('/committee');
-          } else if (userData.role === 'FINANCE') {
-              navigate('/finance');
-          } else {
-              navigate('/applicant');
-          }
-      } else {
+
+      if (userResult.ok && userResult.data) {
+        const userData = userResult.data;
+        if (['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'].includes(userData.role)) {
+          navigate('/admin');
+        } else if (userData.role === 'COMMITTEE') {
+          navigate('/committee');
+        } else if (userData.role === 'FINANCE') {
+          navigate('/finance');
+        } else {
           navigate('/applicant');
+        }
+      } else {
+        navigate('/applicant');
       }
     } catch (err) {
       setError(err.message);
