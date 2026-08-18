@@ -1,5 +1,6 @@
 import API_BASE_URL from '../config';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, CheckCircle2, AlertCircle, Info, ShieldAlert, FileText, DollarSign, X } from 'lucide-react';
 
 export default function NotificationCenter() {
@@ -210,12 +211,12 @@ export default function NotificationCenter() {
         )}
       </button>
 
-      {/* Popover Dropdown (High Z-Index Fixed Overlay to Prevent Overlapping) */}
-      {isOpen && (
+      {/* Popover Dropdown (React Portal on document.body to eliminate GPU Stacking Bleeding) */}
+      {isOpen && createPortal(
         <>
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[9998]" onClick={() => setIsOpen(false)}></div>
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[99998]" onClick={() => setIsOpen(false)}></div>
           
-          <div className="fixed top-16 right-3 sm:right-6 sm:top-20 w-[92vw] sm:w-[400px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-[9999] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[80vh] flex flex-col">
+          <div className="fixed top-16 right-3 sm:right-6 sm:top-20 w-[92vw] sm:w-[420px] bg-white opacity-100 rounded-2xl shadow-2xl border border-slate-200 z-[99999] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[80vh] flex flex-col isolate">
             {/* Header */}
             <div className="px-4 py-3 bg-slate-900 text-white flex justify-between items-center flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -248,11 +249,11 @@ export default function NotificationCenter() {
             </div>
 
             {/* Notification List */}
-            <div className="divide-y divide-slate-100 overflow-y-auto max-h-80 custom-scrollbar flex-1">
+            <div className="divide-y divide-slate-100 overflow-y-auto max-h-80 custom-scrollbar flex-1 bg-white">
               {notifications.map((item) => (
                 <div 
                   key={item.id} 
-                  className={`p-4 flex gap-3 hover:bg-slate-50 transition-colors ${!item.read ? 'bg-amber-50/40' : ''}`}
+                  className={`p-4 flex gap-3 hover:bg-slate-50 transition-colors ${!item.read ? 'bg-amber-50/50' : 'bg-white'}`}
                 >
                   <div className="mt-0.5 flex-shrink-0">
                     {item.type === 'success' ? (
@@ -273,7 +274,7 @@ export default function NotificationCenter() {
                 </div>
               ))}
               {notifications.length === 0 && (
-                <div className="p-6 text-center text-xs text-slate-400">
+                <div className="p-6 text-center text-xs text-slate-400 bg-white">
                   No system notifications found.
                 </div>
               )}
@@ -284,7 +285,8 @@ export default function NotificationCenter() {
               <span className="text-[11px] font-semibold text-slate-500">NG-CDF Real-time Alert System</span>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
