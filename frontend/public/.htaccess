@@ -1,3 +1,15 @@
+# Disable Apache ModSecurity / Bot Protection scanning for API POST requests
+<IfModule mod_security2.c>
+  SecRuleEngine Off
+  SecFilterEngine Off
+  SecFilterScanPOST Off
+</IfModule>
+
+<IfModule mod_security.c>
+  SecFilterEngine Off
+  SecFilterScanPOST Off
+</IfModule>
+
 <IfModule mod_mime.c>
   AddType image/png .png
   AddType image/jpeg .jpg .jpeg
@@ -20,7 +32,7 @@
   RewriteCond %{REQUEST_URI} ^/admin [NC]
   RewriteRule ^ - [L]
 
-  # Rewrite all non-file/non-directory requests (including WAF paths and SPA routes) to index.html
+  # Rewrite all non-file/non-directory requests to index.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME} !-l
