@@ -1,24 +1,17 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Download, ExternalLink, FileText, Eye, ZoomIn, ZoomOut, ShieldAlert } from 'lucide-react';
+import { X, Download, ExternalLink, FileText, Eye, ZoomIn, ZoomOut, CheckCircle2 } from 'lucide-react';
 
 export default function DocumentPreviewModal({ isOpen, onClose, docUrl, docTitle = 'Uploaded Verification Document' }) {
   const [zoom, setZoom] = useState(100);
   const [imgError, setImgError] = useState(false);
-  const [iframeError, setIframeError] = useState(false);
 
   useEffect(() => {
     setImgError(false);
-    setIframeError(false);
     setZoom(100);
   }, [docUrl]);
 
   if (!isOpen || !docUrl) return null;
-
-  // Extension check (handles query parameters and hashes)
-  const cleanUrl = docUrl.split('?')[0].split('#')[0];
-  const isImage = !imgError && (/\.(jpg|jpeg|png|webp|gif|svg)$/i.test(cleanUrl) || !/\.(pdf|doc|docx)$/i.test(cleanUrl));
-  const isPdf = /\.pdf$/i.test(cleanUrl);
 
   const handleOpenNewTab = () => {
     window.open(docUrl, '_blank', 'noopener,noreferrer');
@@ -30,8 +23,8 @@ export default function DocumentPreviewModal({ isOpen, onClose, docUrl, docTitle
         
         {/* Header */}
         <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg flex-shrink-0">
               <FileText size={18} />
             </div>
             <div className="overflow-hidden">
@@ -41,7 +34,7 @@ export default function DocumentPreviewModal({ isOpen, onClose, docUrl, docTitle
           </div>
 
           <div className="flex items-center gap-3 flex-shrink-0">
-            {isImage && !imgError && (
+            {!imgError && (
               <div className="hidden sm:flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700 mr-2">
                 <button 
                   onClick={() => setZoom(prev => Math.max(50, prev - 25))} 
@@ -79,55 +72,40 @@ export default function DocumentPreviewModal({ isOpen, onClose, docUrl, docTitle
         </div>
 
         {/* Content Preview Area */}
-        <div className="flex-1 bg-slate-100 overflow-auto p-4 flex items-center justify-center relative">
+        <div className="flex-1 bg-slate-100 overflow-auto p-4 flex flex-col items-center justify-center relative">
           
-          {/* 1. Try Image Rendering First */}
-          {isImage && !imgError && (
-            <div className="overflow-auto max-w-full max-h-full flex items-center justify-center p-4">
+          {!imgError ? (
+            <div className="w-full h-full flex flex-col items-center justify-center overflow-auto p-2">
               <img 
                 src={docUrl} 
                 alt={docTitle} 
                 onError={() => setImgError(true)}
                 style={{ width: `${zoom}%`, maxWidth: 'none' }}
-                className="max-w-full h-auto rounded-lg shadow-xl object-contain transition-all duration-200 bg-white" 
+                className="max-w-full max-h-[75vh] h-auto rounded-xl shadow-2xl object-contain transition-all duration-200 bg-white border border-slate-200" 
               />
             </div>
-          )}
-
-          {/* 2. Try PDF / Embedded Object */}
-          {(!isImage || imgError) && !iframeError && (
-            <object 
-              data={docUrl} 
-              type="application/pdf"
-              className="w-full h-full rounded-lg border border-slate-300 bg-white shadow-inner"
-              onError={() => setIframeError(true)}
-            >
-              <iframe 
-                src={`${docUrl}#toolbar=1`}
-                title={docTitle}
-                className="w-full h-full rounded-lg border border-slate-300 bg-white shadow-inner"
-              />
-            </object>
-          )}
-
-          {/* 3. Fallback Display Card (Always accessible if browser blocks frame embedding) */}
-          {(imgError && iframeError) && (
-            <div className="w-full max-w-xl p-8 bg-white rounded-2xl border border-slate-200 text-center space-y-5 shadow-xl my-auto">
-              <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200">
-                <FileText size={32} />
+          ) : (
+            <div className="w-full max-w-xl p-8 bg-white rounded-2xl border border-slate-200 text-center space-y-6 shadow-xl my-auto animate-in fade-in zoom-in-95 duration-300">
+              <div className="w-20 h-20 bg-emerald-50 text-[#0F6B38] rounded-3xl flex items-center justify-center mx-auto border-2 border-emerald-200 shadow-inner">
+                <FileText size={40} />
               </div>
-              <div className="space-y-1">
-                <h4 className="font-black text-slate-900 text-lg">{docTitle}</h4>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  This document is stored securely on the server. Your browser's security frame policy requires opening it directly in a dedicated tab.
+              
+              <div className="space-y-2">
+                <span className="px-3 py-1 bg-emerald-100 text-[#0F6B38] rounded-full text-[10px] font-black uppercase tracking-wider">
+                  Verified Document Attachment
+                </span>
+                <h4 className="font-black text-slate-900 text-xl">{docTitle}</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  This document (PDF or official scan) is ready for committee review. Click below to open and inspect the full document in a dedicated high-resolution browser tab.
                 </p>
               </div>
-              <div className="pt-2">
+
+              <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button
                   onClick={handleOpenNewTab}
-                  className="px-8 py-3.5 bg-[#0F6B38] hover:bg-[#094724] text-white text-xs font-black rounded-xl shadow-lg transition-all flex items-center gap-2.5 mx-auto hover:scale-105 active:scale-95"
+                  className="w-full sm:w-auto px-8 py-4 bg-[#0F6B38] hover:bg-[#094724] text-white text-xs font-black rounded-xl shadow-xl transition-all flex items-center justify-center gap-2.5 hover:scale-105 active:scale-95"
                 >
-                  <ExternalLink size={18} /> Open & Download Document
+                  <ExternalLink size={18} /> Open & Inspect Document
                 </button>
               </div>
             </div>
@@ -142,7 +120,7 @@ export default function DocumentPreviewModal({ isOpen, onClose, docUrl, docTitle
             onClick={handleOpenNewTab}
             className="text-[#0F6B38] hover:underline font-bold flex items-center gap-1"
           >
-            Trouble viewing? Click here to open document directly <ExternalLink size={12} />
+            Click here to open document directly in new tab <ExternalLink size={12} />
           </button>
         </div>
 
