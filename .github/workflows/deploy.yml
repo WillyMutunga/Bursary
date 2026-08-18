@@ -58,3 +58,12 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: /tmp/
           local-dir: ./backend/tmp/
+
+      - name: 🚀 Deploy passenger_wsgi.py to cPanel Root
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /
+          local-dir: ./passenger_wsgi.py
