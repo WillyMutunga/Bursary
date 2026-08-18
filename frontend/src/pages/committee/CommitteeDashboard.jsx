@@ -23,10 +23,17 @@ import DocumentPreviewModal from '../../components/DocumentPreviewModal';
 
 const getDocUrl = (path) => {
   if (!path) return '';
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
   const baseUrl = API_BASE_URL.replace(/\/+$/, '');
-  const docPath = path.startsWith('/') ? path : `/${path}`;
-  return `${baseUrl}${docPath}`;
+  let cleanPath = path;
+  if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+    try {
+      const u = new URL(cleanPath);
+      cleanPath = u.pathname;
+    } catch (e) {
+      // keep original if parsing fails
+    }
+  }
+  return `${baseUrl}/api/v1/applications/download_doc/?path=${encodeURIComponent(cleanPath)}`;
 };
 
 export default function CommitteeDashboard() {

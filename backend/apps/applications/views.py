@@ -432,3 +432,37 @@ class PublicApplicationTrackView(APIView):
             'ward': app.ward,
             'created_at': app.created_at
         }, status=status.HTTP_200_OK)
+
+
+from django.http import FileResponse, Http404
+import mimetypes
+
+class DocumentDownloadView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        rel_path = request.query_params.get('path', '').strip()
+        if not rel_path:
+            raise Http404("Document path not provided")
+
+        # Sanitize path to prevent directory traversal
+        rel_path = rel_path.lstrip('/')
+        if rel_path.startswith('media/'):
+            rel_path = rel_path[6:]
+        
+        full_path = os.path.abspath(os.path.join(settings.MEDIA_ROOT, rel_path))
+
+        # Security check: Ensure file resides within MEDIA_ROOT
+        if not full_path.startswith(os.path.abspath(settings.MEDIA_ROOT)):
+            raise Http404("Invalid file path")
+
+        if not os.path.exists(full_path) or not os.path.isfile(full_path):
+            raise Http404(f"File not found on server: {os.path.basename(full_path)}")
+
+        content_type, _ = mimetypes.guess_type(full_path)
+        if not content_type:
+            content_type = 'application/pdf' if full_path.lower().endswith('.pdf') else 'application/octet-stream'
+
+        response = FileResponse(open(full_path, 'rb'), content_type=content_type)
+        response['Content-Disposition'] = f'inline; filename="{os.path.basename(full_path)}"'
+        return response
