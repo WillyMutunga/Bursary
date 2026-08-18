@@ -1,10 +1,6 @@
 """
 WSGI config for backend project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/6.1/howto/deployment/wsgi/
+Reload trigger: 2026-08-18 09:59:30
 """
 
 import os
