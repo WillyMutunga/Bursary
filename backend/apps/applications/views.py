@@ -184,6 +184,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             with connection.cursor() as cursor:
                 cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+            connection.commit()
         except Exception:
             pass
 
