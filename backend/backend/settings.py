@@ -155,3 +155,22 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# Auto Schema Guarantee for BursaryBudget
+try:
+    import psycopg2
+    db = DATABASES['default']
+    conn = psycopg2.connect(
+        dbname=db['NAME'],
+        user=db['USER'],
+        password=db['PASSWORD'],
+        host=db['HOST'],
+        port=db['PORT']
+    )
+    conn.autocommit = True
+    cursor = conn.cursor()
+    cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+    cursor.close()
+    conn.close()
+except Exception as e:
+    pass
