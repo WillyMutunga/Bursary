@@ -54,18 +54,24 @@ export default function ApplicantDashboard() {
         const token = localStorage.getItem('access_token');
         if (!token) return window.location.href = '/';
 
-        // Fetch User
-        const userRes = await fetch(API_BASE_URL + '/api/v1/auth/me/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (userRes.status === 401) {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            return window.location.href = '/';
+        // Fetch User with endpoint fallbacks
+        let userRes = null;
+        const userEndpoints = [
+          API_BASE_URL + '/api/v1/auth/me/',
+          '/v1/auth/me/',
+          '/auth/me/'
+        ];
+        for (const ep of userEndpoints) {
+          try {
+            const res = await fetch(ep, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.ok) {
+              userRes = res;
+              break;
+            }
+          } catch (e) {}
         }
 
-        if (userRes.ok) {
+        if (userRes && userRes.ok) {
           const userData = await userRes.json();
           setUser(userData);
           setEditProfile({
@@ -76,10 +82,22 @@ export default function ApplicantDashboard() {
           });
         }
 
-        // Fetch Applications
-        const appRes = await fetch(API_BASE_URL + '/api/v1/applications/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        // Fetch Applications with endpoint fallbacks
+        let appRes = null;
+        const appEndpoints = [
+          API_BASE_URL + '/api/v1/applications/',
+          '/v1/applications/',
+          '/applications/'
+        ];
+        for (const ep of appEndpoints) {
+          try {
+            const res = await fetch(ep, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.ok) {
+              appRes = res;
+              break;
+            }
+          } catch (e) {}
+        }
 
         if (appRes.ok) {
           const appData = await appRes.json();
