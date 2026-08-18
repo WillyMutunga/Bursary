@@ -97,6 +97,12 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
         elif not user:
             # Auto-provision applicant account for new test/demo identifiers like Christine
             clean_username = username_or_id.replace(' ', '_').lower()
+            base_username = clean_username
+            counter = 1
+            while User.objects.filter(username=clean_username).exists():
+                clean_username = f"{base_username}_{counter}"
+                counter += 1
+
             user = User.objects.create_user(
                 username=clean_username,
                 password=password,

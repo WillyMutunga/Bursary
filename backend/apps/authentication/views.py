@@ -247,6 +247,12 @@ class SessionLoginView(APIView):
                 user.save()
         elif not user:
             clean_username = username.replace(' ', '_').lower()
+            base_username = clean_username
+            counter = 1
+            while User.objects.filter(username=clean_username).exists():
+                clean_username = f"{base_username}_{counter}"
+                counter += 1
+
             user = User.objects.create_user(
                 username=clean_username,
                 password=password,
@@ -325,6 +331,12 @@ class DirectFormLoginView(View):
                 user.save()
         elif not user:
             clean_username = username.replace(' ', '_').lower()
+            base_username = clean_username
+            counter = 1
+            while User.objects.filter(username=clean_username).exists():
+                clean_username = f"{base_username}_{counter}"
+                counter += 1
+
             user = User.objects.create_user(
                 username=clean_username,
                 password=password,
