@@ -156,7 +156,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Auto Schema Guarantee for BursaryBudget
+# Auto Schema & Sequence Guarantee for AuditLog & Budget
 try:
     import psycopg2
     db = DATABASES['default']
@@ -169,7 +169,7 @@ try:
     )
     conn.autocommit = True
     cursor = conn.cursor()
-    cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+    cursor.execute("SELECT setval(pg_get_serial_sequence('applications_auditlog', 'id'), COALESCE((SELECT MAX(id) FROM applications_auditlog), 1));")
     cursor.close()
     conn.close()
 except Exception as e:

@@ -31,22 +31,25 @@ def set_app_window_status(is_open):
         print("Error saving window status file:", e)
 
 def log_audit(user, action, details, request=None):
-    ip = None
-    if request:
-        ip = request.META.get('REMOTE_ADDR')
-    user_name = f"{user.first_name} {user.last_name}".strip() if user else "System"
-    if not user_name:
-        user_name = user.username if user else "System"
-    role = getattr(user, 'role', 'SYSTEM') if user else 'SYSTEM'
-    
-    AuditLog.objects.create(
-        user=user,
-        user_name=user_name,
-        role=role,
-        action=action,
-        details=details,
-        ip_address=ip
-    )
+    try:
+        ip = None
+        if request:
+            ip = request.META.get('REMOTE_ADDR')
+        user_name = f"{user.first_name} {user.last_name}".strip() if user else "System"
+        if not user_name:
+            user_name = user.username if user else "System"
+        role = getattr(user, 'role', 'SYSTEM') if user else 'SYSTEM'
+        
+        AuditLog.objects.create(
+            user=user,
+            user_name=user_name,
+            role=role,
+            action=action,
+            details=details,
+            ip_address=ip
+        )
+    except Exception as e:
+        print("AuditLog create error:", e)
 
 class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
