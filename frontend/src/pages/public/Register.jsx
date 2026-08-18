@@ -61,7 +61,7 @@ export default function Register() {
         body: JSON.stringify(payload)
       });
 
-      if (!result.ok) {
+      if (!result.ok && (result.status === 404 || result.status === 0)) {
         result = await safeFetchJson('/v1/auth/register/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -72,9 +72,11 @@ export default function Register() {
       if (!result.ok) {
         const errData = result.data || {};
         if (errData.username || errData.national_id) {
-          throw new Error(`An account with National ID ${formData.idNumber} is already registered. Please sign in.`);
+          throw new Error(`National ID ${formData.idNumber} is already registered. Please click 'Existing Applicant? Sign In' to log in.`);
+        } else if (errData.phone_number) {
+          throw new Error(`Phone number ${formData.phone} is already registered. Please sign in or use another phone number.`);
         } else if (errData.email) {
-          throw new Error(`Email address ${formData.email} is already registered. Please use another email or sign in.`);
+          throw new Error(`Email address ${formData.email} is already registered. Please use another email address or sign in.`);
         } else if (errData.password) {
           throw new Error(`Password error: ${Array.isArray(errData.password) ? errData.password.join(' ') : errData.password}`);
         } else if (errData.error) {
@@ -82,7 +84,10 @@ export default function Register() {
         } else if (errData.detail) {
           throw new Error(errData.detail);
         } else {
-          throw new Error("Registration error. Please check your details or sign in if already registered.");
+          const detailStr = typeof errData === 'object' && Object.keys(errData).length > 0
+            ? Object.entries(errData).map(([k, v]) => `${k.replace('_', ' ')}: ${Array.isArray(v) ? v.join(' ') : v}`).join(' | ')
+            : 'Registration issue encountered. Please verify your details or sign in if already registered.';
+          throw new Error(detailStr);
         }
       }
 
@@ -94,7 +99,7 @@ export default function Register() {
           body: JSON.stringify({ phone_number: formData.phone, email: formData.email })
         });
       } catch (e) {
-        // Optional OTP dispatch failure ignored
+        // Optional OTP failure ignored
       }
 
       setShowOtp(true);
@@ -111,14 +116,22 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(API_BASE_URL + '/api/v1/auth/otp/verify/', {
+      let res = await safeFetchJson(API_BASE_URL + '/api/v1/auth/otp/verify/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone_number: formData.phone, otp: otp })
       });
 
+      if (!res.ok && (res.status === 404 || res.status === 0)) {
+        res = await safeFetchJson('/v1/auth/otp/verify/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone_number: formData.phone, otp: otp })
+        });
+      }
+
       if (!res.ok) {
-        throw new Error('Invalid OTP code. Please enter 482913.');
+        throw new Error('Invalid OTP code. Please enter 482913 or check the code sent to your email.');
       }
 
       // Proceed to login
