@@ -155,22 +155,3 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
-
-# Auto Schema & Sequence Guarantee for AuditLog & Budget
-try:
-    import psycopg2
-    db = DATABASES['default']
-    conn = psycopg2.connect(
-        dbname=db['NAME'],
-        user=db['USER'],
-        password=db['PASSWORD'],
-        host=db['HOST'],
-        port=db['PORT']
-    )
-    conn.autocommit = True
-    cursor = conn.cursor()
-    cursor.execute("SELECT setval(pg_get_serial_sequence('applications_auditlog', 'id'), COALESCE((SELECT MAX(id) FROM applications_auditlog), 1));")
-    cursor.close()
-    conn.close()
-except Exception as e:
-    pass
