@@ -86,17 +86,31 @@ export default function NotificationCenter() {
           } else if (isCommittee) {
             // Committee Notifications: Verification & Review Alerts
             generatedList = appList.slice(0, 5).map((app, index) => {
-              let title = `Awaiting Review: ${app.reference_number}`;
-              let message = `Application for ${app.institution_name || 'Student'} requires score evaluation.`;
+              let title = `Application Logged: ${app.reference_number || 'CDF/BURS/2026'}`;
+              let message = `Application for ${app.institution_name || 'Student'} status: ${app.status}.`;
               let type = 'info';
 
               if (app.status === 'APPROVED') {
                 title = `Review Completed: ${app.reference_number}`;
                 message = `Scored ${app.eligibility_score || 0} pts and awarded KSh ${parseFloat(app.awarded_amount || 0).toLocaleString()}.`;
                 type = 'success';
-              } else if (app.fraud_score === 'HIGH_RISK') {
+              } else if (app.status === 'PAID') {
+                title = `Disbursement Complete: ${app.reference_number}`;
+                message = `KSh ${parseFloat(app.awarded_amount || 0).toLocaleString()} disbursed to ${app.institution_name}.`;
+                type = 'success';
+              } else if (app.status === 'REJECTED') {
+                title = `Application Declined: ${app.reference_number}`;
+                message = `Application for ${app.institution_name} was declined by committee.`;
+                type = 'warning';
+              } else if (app.status === 'SUBMITTED' || app.status === 'VERIFICATION') {
+                title = `Awaiting Review: ${app.reference_number}`;
+                message = `Application for ${app.institution_name || 'Student'} requires score evaluation.`;
+                type = 'info';
+              }
+
+              if (app.fraud_score === 'HIGH_RISK') {
                 title = `Verification Risk: ${app.reference_number}`;
-                message = `Flagged for duplicate admission number verification.`;
+                message = `Flagged for duplicate admission or anomaly verification.`;
                 type = 'warning';
               }
 
