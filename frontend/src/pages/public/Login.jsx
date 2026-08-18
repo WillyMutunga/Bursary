@@ -34,18 +34,24 @@ export default function Login() {
     setError('');
 
     try {
-      let result = await safeFetchJson(API_BASE_URL + '/api/v1/auth/login/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      let loginEndpoints = [
+        API_BASE_URL + '/api/v1/auth/login/',
+        API_BASE_URL + '/api/v1/auth/authenticate/',
+        API_BASE_URL + '/api/v1/auth/user_login/',
+        '/v1/auth/login/',
+        '/v1/auth/authenticate/'
+      ];
 
-      if (!result.ok) {
-        result = await safeFetchJson('/v1/auth/login/', {
+      let result = null;
+      for (const endpoint of loginEndpoints) {
+        result = await safeFetchJson(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
+        if (result.ok && result.data && result.data.access) {
+          break;
+        }
       }
 
       if (!result.ok || !result.data) {

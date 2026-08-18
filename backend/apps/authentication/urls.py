@@ -5,6 +5,8 @@ from .views import RegisterView, OTPRequestView, OTPVerifyView, UserProfileView,
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='auth_register'),
     path('login/', CustomLoginView.as_view(), name='auth_login'),
+    path('authenticate/', CustomLoginView.as_view(), name='auth_authenticate'),
+    path('user_login/', CustomLoginView.as_view(), name='auth_user_login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('otp/request/', OTPRequestView.as_view(), name='otp_request'),
     path('otp/verify/', OTPVerifyView.as_view(), name='otp_verify'),
