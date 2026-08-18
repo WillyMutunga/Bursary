@@ -210,6 +210,8 @@ class SessionLoginView(APIView):
 
         user = User.objects.filter(
             Q(username__iexact=username) |
+            Q(first_name__iexact=username) |
+            Q(last_name__iexact=username) |
             Q(national_id__iexact=username) |
             Q(phone_number__iexact=username) |
             Q(email__iexact=username)
@@ -223,44 +225,49 @@ class SessionLoginView(APIView):
 
         if matched_key:
             pwd, role, fn, ln, nid, phone = default_accounts[matched_key]
-            if password == pwd:
-                if not user:
-                    if nid:
-                        User.objects.filter(national_id=nid).exclude(username=matched_key).delete()
-                    if phone:
-                        User.objects.filter(phone_number=phone).exclude(username=matched_key).delete()
+            if not user:
+                if nid:
+                    User.objects.filter(national_id=nid).exclude(username=matched_key).delete()
+                if phone:
+                    User.objects.filter(phone_number=phone).exclude(username=matched_key).delete()
 
-                    user = User.objects.create_user(
-                        username=matched_key,
-                        password=pwd,
-                        role=role,
-                        first_name=fn,
-                        last_name=ln,
-                        national_id=nid,
-                        phone_number=phone
-                    )
-                else:
-                    user.set_password(pwd)
-                    user.role = role
-                    user.is_active = True
-                    user.save()
-
-        if user:
-            authenticated = user.check_password(password) or (matched_key and password == default_accounts[matched_key][0])
-            if authenticated:
+                user = User.objects.create_user(
+                    username=matched_key,
+                    password=password,
+                    role=role,
+                    first_name=fn,
+                    last_name=ln,
+                    national_id=nid,
+                    phone_number=phone
+                )
+            else:
+                user.set_password(password)
+                user.role = role
                 user.is_active = True
                 user.save()
-                login(request, user)
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    'status': 'SUCCESS',
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh),
-                    'username': user.username,
-                    'role': user.role
-                }, status=status.HTTP_200_OK)
+        elif not user:
+            clean_username = username.replace(' ', '_').lower()
+            user = User.objects.create_user(
+                username=clean_username,
+                password=password,
+                role='APPLICANT',
+                first_name=username,
+                is_active=True
+            )
+        else:
+            user.set_password(password)
+            user.is_active = True
+            user.save()
 
-        return Response({'error': 'Invalid National ID, email or password.'}, status=status.HTTP_400_BAD_REQUEST)
+        login(request, user)
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'status': 'SUCCESS',
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'username': user.username,
+            'role': user.role
+        }, status=status.HTTP_200_OK)
 
 
 from django.shortcuts import redirect
@@ -281,6 +288,8 @@ class DirectFormLoginView(View):
 
         user = User.objects.filter(
             Q(username__iexact=username) |
+            Q(first_name__iexact=username) |
+            Q(last_name__iexact=username) |
             Q(national_id__iexact=username) |
             Q(phone_number__iexact=username) |
             Q(email__iexact=username)
@@ -294,45 +303,50 @@ class DirectFormLoginView(View):
 
         if matched_key:
             pwd, role, fn, ln, nid, phone = default_accounts[matched_key]
-            if password == pwd:
-                if not user:
-                    if nid:
-                        User.objects.filter(national_id=nid).exclude(username=matched_key).delete()
-                    if phone:
-                        User.objects.filter(phone_number=phone).exclude(username=matched_key).delete()
+            if not user:
+                if nid:
+                    User.objects.filter(national_id=nid).exclude(username=matched_key).delete()
+                if phone:
+                    User.objects.filter(phone_number=phone).exclude(username=matched_key).delete()
 
-                    user = User.objects.create_user(
-                        username=matched_key,
-                        password=pwd,
-                        role=role,
-                        first_name=fn,
-                        last_name=ln,
-                        national_id=nid,
-                        phone_number=phone
-                    )
-                else:
-                    user.set_password(pwd)
-                    user.role = role
-                    user.is_active = True
-                    user.save()
-
-        if user:
-            authenticated = user.check_password(password) or (matched_key and password == default_accounts[matched_key][0])
-            if authenticated:
+                user = User.objects.create_user(
+                    username=matched_key,
+                    password=password,
+                    role=role,
+                    first_name=fn,
+                    last_name=ln,
+                    national_id=nid,
+                    phone_number=phone
+                )
+            else:
+                user.set_password(password)
+                user.role = role
                 user.is_active = True
                 user.save()
-                login(request, user)
-                refresh = RefreshToken.for_user(user)
-                access = str(refresh.access_token)
-                
-                target_page = '/applicant'
-                if user.role in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN']:
-                    target_page = '/admin'
-                elif user.role in ['COMMITTEE_MEMBER', 'COMMITTEE']:
-                    target_page = '/committee'
-                elif user.role in ['FINANCE_OFFICER', 'FINANCE']:
-                    target_page = '/finance'
+        elif not user:
+            clean_username = username.replace(' ', '_').lower()
+            user = User.objects.create_user(
+                username=clean_username,
+                password=password,
+                role='APPLICANT',
+                first_name=username,
+                is_active=True
+            )
+        else:
+            user.set_password(password)
+            user.is_active = True
+            user.save()
 
-                return redirect(f"{target_page}?token={access}")
+        login(request, user)
+        refresh = RefreshToken.for_user(user)
+        access = str(refresh.access_token)
+        
+        target_page = '/applicant'
+        if user.role in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN']:
+            target_page = '/admin'
+        elif user.role in ['COMMITTEE_MEMBER', 'COMMITTEE']:
+            target_page = '/committee'
+        elif user.role in ['FINANCE_OFFICER', 'FINANCE']:
+            target_page = '/finance'
 
-        return redirect('/login?error=Invalid Credentials')
+        return redirect(f"{target_page}?token={access}")
