@@ -1,6 +1,6 @@
 import API_BASE_URL from '../config';
 import { useState, useEffect } from 'react';
-import { Bell, CheckCircle2, AlertCircle, Info, ShieldAlert, FileText, DollarSign } from 'lucide-react';
+import { Bell, CheckCircle2, AlertCircle, Info, ShieldAlert, FileText, DollarSign, X } from 'lucide-react';
 
 export default function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
@@ -105,46 +105,22 @@ export default function NotificationCenter() {
                 message,
                 time: app.created_at ? new Date(app.created_at).toLocaleDateString() : 'Recent',
                 type,
-                read: index > 1
+                read: index > 0
               };
             });
 
           } else if (isFinance) {
-            // Finance Notifications: Disbursement & Payout Alerts
-            generatedList = appList.filter(a => a.status === 'APPROVED' || a.status === 'PAID').slice(0, 5).map((app, index) => {
-              let title = app.status === 'PAID' ? `EFT Paid: ${app.reference_number}` : `Payout Pending: ${app.reference_number}`;
-              let message = `KSh ${parseFloat(app.awarded_amount || 0).toLocaleString()} allocated for ${app.institution_name || 'Institution'}.`;
-              let type = app.status === 'PAID' ? 'success' : 'info';
-
-              return {
-                id: app.id || index,
-                title,
-                message,
-                time: app.created_at ? new Date(app.created_at).toLocaleDateString() : 'Recent',
-                type,
-                read: index > 1
-              };
-            });
-
-          } else {
-            // Student Applicant Notifications: Personal Application Status
-            generatedList = appList.slice(0, 5).map((app, index) => {
-              let title = `Application Update (${app.reference_number || 'DRAFT'})`;
-              let message = `Your application status is ${app.status}. Institution: ${app.institution_name || 'N/A'}`;
+            // Finance Notifications: Approved Allocation & Payment Alerts
+            const approvedApps = appList.filter(a => a.status === 'APPROVED' || a.status === 'PAID');
+            generatedList = approvedApps.slice(0, 5).map((app, index) => {
+              let title = `Disbursement Ready: ${app.reference_number}`;
+              let message = `Awarded KSh ${parseFloat(app.awarded_amount || 0).toLocaleString()} for ${app.institution_name || 'Institution'}.`;
               let type = 'info';
 
-              if (app.status === 'APPROVED') {
-                title = `Bursary Approved: ${app.reference_number}`;
-                message = `Your application for ${app.institution_name} has been approved for KSh ${parseFloat(app.awarded_amount || 0).toLocaleString()}.`;
+              if (app.status === 'PAID') {
+                title = `Paid Out: ${app.reference_number}`;
+                message = `Cheque / EFT processed successfully.`;
                 type = 'success';
-              } else if (app.status === 'PAID') {
-                title = `Disbursement Complete: ${app.reference_number}`;
-                message = `Finance has disbursed KSh ${parseFloat(app.awarded_amount || 0).toLocaleString()} to ${app.institution_name}.`;
-                type = 'success';
-              } else if (app.status === 'REJECTED') {
-                title = `Application Decision: ${app.reference_number}`;
-                message = `Your application was reviewed by the committee and not approved at this time.`;
-                type = 'warning';
               }
 
               return {
@@ -153,25 +129,68 @@ export default function NotificationCenter() {
                 message,
                 time: app.created_at ? new Date(app.created_at).toLocaleDateString() : 'Recent',
                 type,
-                read: index > 1
+                read: app.status === 'PAID'
               };
             });
+
+          } else {
+            // Student / Applicant Notifications: Specific Personal Status Updates
+            if (appList.length === 0) {
+              generatedList = [{
+                id: 'welcome',
+                title: 'Welcome to NG-CDF Bursary Portal',
+                message: 'Complete your online bursary application for FY 2026/2027.',
+                time: 'Just now',
+                type: 'info',
+                read: false
+              }];
+            } else {
+              const myApp = appList[0];
+              let title = `Application Status: ${myApp.status}`;
+              let message = `Your bursary application (${myApp.reference_number}) is currently undergoing committee verification.`;
+              let type = 'info';
+
+              if (myApp.status === 'APPROVED') {
+                title = `🎉 Bursary Awarded!`;
+                message = `Congratulations! You have been awarded KSh ${parseFloat(myApp.awarded_amount || 0).toLocaleString()}. Download your official award letter.`;
+                type = 'success';
+              } else if (myApp.status === 'PAID') {
+                title = `💰 Funds Disbursed to School`;
+                message = `Disbursement of KSh ${parseFloat(myApp.awarded_amount || 0).toLocaleString()} to ${myApp.institution_name} complete.`;
+                type = 'success';
+              } else if (myApp.status === 'REJECTED') {
+                title = `Application Status Update`;
+                message = `Your application was reviewed by the constituency committee.`;
+                type = 'warning';
+              }
+
+              generatedList = [{
+                id: myApp.id || 1,
+                title,
+                message,
+                time: myApp.created_at ? new Date(myApp.created_at).toLocaleDateString() : 'Recent',
+                type,
+                read: false
+              }];
+            }
           }
 
           setNotifications(generatedList);
         }
       } catch (err) {
-        console.error("Failed to fetch notifications", err);
+        console.error("Error fetching notifications:", err);
       }
     };
 
     fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
   };
 
   return (
@@ -179,8 +198,9 @@ export default function NotificationCenter() {
       {/* Bell Trigger Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-slate-500 hover:text-navy hover:bg-slate-100 rounded-full transition-colors focus:outline-none"
+        className="relative p-2 text-slate-500 hover:text-navy hover:bg-slate-100 rounded-full transition-colors focus:outline-none active:scale-95"
         title="Notifications"
+        aria-label="View notifications"
       >
         <Bell size={20} />
         {unreadCount > 0 && (
@@ -190,36 +210,51 @@ export default function NotificationCenter() {
         )}
       </button>
 
-      {/* Popover Dropdown */}
+      {/* Popover Dropdown (Fully Mobile Responsive) */}
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40" onClick={() => setIsOpen(false)}></div>
           
-          <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="fixed sm:absolute inset-x-3 top-20 sm:top-auto sm:right-0 sm:inset-x-auto mt-2 sm:mt-3 w-auto sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
             {/* Header */}
-            <div className="px-4 py-3 bg-slate-900 text-white flex justify-between items-center">
+            <div className="px-4 py-3 bg-slate-900 text-white flex justify-between items-center flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Bell size={16} className="text-amber-400" />
-                <span className="font-bold text-sm">System Notifications</span>
+                <span className="font-bold text-sm">Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="bg-red-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
+                    {unreadCount} new
+                  </span>
+                )}
               </div>
-              {unreadCount > 0 && (
+              
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button 
+                    onClick={markAllRead} 
+                    className="text-[11px] font-semibold text-amber-400 hover:underline mr-1"
+                  >
+                    Mark read
+                  </button>
+                )}
                 <button 
-                  onClick={markAllRead} 
-                  className="text-[11px] font-semibold text-amber-400 hover:underline"
+                  onClick={() => setIsOpen(false)}
+                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                  aria-label="Close notifications"
                 >
-                  Mark all as read
+                  <X size={18} />
                 </button>
-              )}
+              </div>
             </div>
 
-            {/* List */}
-            <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+            {/* Notification List */}
+            <div className="divide-y divide-slate-100 overflow-y-auto max-h-80 custom-scrollbar flex-1">
               {notifications.map((item) => (
                 <div 
                   key={item.id} 
-                  className={`p-4 flex gap-3 hover:bg-slate-50 transition-colors ${!item.read ? 'bg-amber-50/30' : ''}`}
+                  className={`p-4 flex gap-3 hover:bg-slate-50 transition-colors ${!item.read ? 'bg-amber-50/40' : ''}`}
                 >
-                  <div className="mt-0.5">
+                  <div className="mt-0.5 flex-shrink-0">
                     {item.type === 'success' ? (
                       <CheckCircle2 className="text-emerald-600" size={18} />
                     ) : item.type === 'info' ? (
@@ -228,12 +263,12 @@ export default function NotificationCenter() {
                       <AlertCircle className="text-amber-600" size={18} />
                     )}
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs font-bold text-navy">{item.title}</p>
-                      <span className="text-[10px] text-slate-400">{item.time}</span>
+                  <div className="flex-1 space-y-1 overflow-hidden">
+                    <div className="flex justify-between items-center gap-2">
+                      <p className="text-xs font-bold text-navy truncate">{item.title}</p>
+                      <span className="text-[10px] text-slate-400 whitespace-nowrap">{item.time}</span>
                     </div>
-                    <p className="text-xs text-slate-600 leading-relaxed">{item.message}</p>
+                    <p className="text-xs text-slate-600 leading-relaxed break-words">{item.message}</p>
                   </div>
                 </div>
               ))}
@@ -245,8 +280,8 @@ export default function NotificationCenter() {
             </div>
 
             {/* Footer */}
-            <div className="p-2 bg-slate-50 border-t border-slate-100 text-center">
-              <span className="text-[11px] font-semibold text-slate-400">NG-CDF Real-time Alert System</span>
+            <div className="p-2.5 bg-slate-50 border-t border-slate-100 text-center flex-shrink-0">
+              <span className="text-[11px] font-semibold text-slate-500">NG-CDF Real-time Alert System</span>
             </div>
           </div>
         </>
