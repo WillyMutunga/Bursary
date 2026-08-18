@@ -98,13 +98,30 @@ class AdminUserRoleUpdateView(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        new_role = request.data.get('role')
-        if new_role:
-            target_user.role = new_role
-            target_user.save()
-            return Response({'status': 'Role updated successfully', 'user': UserSerializer(target_user).data})
-        
-        return Response({'error': 'Role parameter required'}, status=status.HTTP_400_BAD_REQUEST)
+        if 'role' in request.data:
+            target_user.role = request.data['role']
+        if 'is_active' in request.data:
+            target_user.is_active = request.data['is_active']
+        if 'password' in request.data and request.data['password']:
+            target_user.set_password(request.data['password'])
+
+        target_user.save()
+        return Response({'status': 'User updated successfully', 'user': UserSerializer(target_user).data})
+
+    def delete(self, request, pk):
+        if request.user.role not in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'] and not request.user.is_superuser:
+            return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        if request.user.pk == pk:
+            return Response({'error': 'Cannot delete your own active administrator account'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            target_user = User.objects.get(pk=pk)
+            username = target_user.username
+            target_user.delete()
+            return Response({'status': f"User '{username}' account deleted successfully"})
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class ResetPasswordsView(APIView):

@@ -15,7 +15,9 @@ import {
   Menu,
   X,
   Sliders,
-  BarChart2
+  BarChart2,
+  KeyRound,
+  Trash2
 } from 'lucide-react';
 import NotificationCenter from '../../components/NotificationCenter';
 import AnalyticsCharts from '../../components/AnalyticsCharts';
@@ -118,6 +120,78 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       alert('Error updating user role');
+    }
+  };
+
+  const handleToggleStatus = async (userId, currentStatus, username) => {
+    const actionName = currentStatus ? 'Lock/Suspend' : 'Unlock/Activate';
+    if (!window.confirm(`Are you sure you want to ${actionName} access for user '${username}'?`)) return;
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/users/${userId}/role/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_active: !currentStatus })
+      });
+      if (res.ok) {
+        fetchUsers(token);
+      } else {
+        alert('Failed to update user status');
+      }
+    } catch (err) {
+      alert('Error updating user status');
+    }
+  };
+
+  const handleResetPassword = async (userId, username) => {
+    const newPwd = window.prompt(`Enter new password for user '${username}':`);
+    if (!newPwd) return;
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/users/${userId}/role/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: newPwd })
+      });
+      if (res.ok) {
+        alert(`Password for user '${username}' reset successfully!`);
+        fetchUsers(token);
+      } else {
+        alert('Failed to reset password');
+      }
+    } catch (err) {
+      alert('Error resetting password');
+    }
+  };
+
+  const handleDeleteUser = async (userId, username) => {
+    if (!window.confirm(`CRITICAL WARNING: Are you sure you want to PERMANENTLY DELETE user account '${username}'? This action cannot be undone.`)) return;
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/users/${userId}/role/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.status || 'User deleted successfully');
+        fetchUsers(token);
+      } else {
+        alert(data.error || 'Failed to delete user');
+      }
+    } catch (err) {
+      alert('Error deleting user account');
     }
   };
 
@@ -282,17 +356,24 @@ export default function AdminDashboard() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                          <th className="px-6 py-4">User</th>
-                          <th className="px-6 py-4">Email</th>
-                          <th className="px-6 py-4">Current Role</th>
-                          <th className="px-6 py-4 text-right">Assign Privileges</th>
+                          <th className="px-6 py-4">User Details</th>
+                          <th className="px-6 py-4">Email / Phone</th>
+                          <th className="px-6 py-4">System Role</th>
+                          <th className="px-6 py-4">Account Status</th>
+                          <th className="px-6 py-4 text-right">Actions & Privileges</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {filteredUsers.map(u => (
                           <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap font-bold text-navy">{u.username}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-500">{u.email || 'N/A'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="font-bold text-navy text-sm">{u.username}</div>
+                              <div className="text-[11px] text-slate-400 font-medium">ID: {u.national_id || u.phone_number || 'N/A'}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 font-medium">
+                              <div>{u.email || 'N/A'}</div>
+                              <div className="text-[11px] text-slate-400">{u.phone_number || ''}</div>
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
                                 u.role === 'COMMITTEE' ? 'bg-purple-100 text-purple-800' :
@@ -303,17 +384,61 @@ export default function AdminDashboard() {
                                 {u.role}
                               </span>
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {u.is_active !== false ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                                  <CheckCircle2 size={12} /> Active
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800">
+                                  <Lock size={12} /> Locked / Suspended
+                                </span>
+                              )}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <select 
-                                value={u.role} 
-                                onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                                className="border border-slate-300 rounded-lg p-2 text-xs font-semibold text-navy bg-white focus:ring-2 focus:ring-red-500 focus:outline-none"
-                              >
-                                <option value="APPLICANT">APPLICANT (Student)</option>
-                                <option value="COMMITTEE">COMMITTEE Member</option>
-                                <option value="FINANCE">FINANCE Officer</option>
-                                <option value="ADMINISTRATOR">ADMINISTRATOR</option>
-                              </select>
+                              <div className="flex items-center justify-end gap-2">
+                                <select 
+                                  value={u.role} 
+                                  onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                                  className="border border-slate-300 rounded-lg py-1.5 px-2 text-xs font-semibold text-navy bg-white focus:ring-2 focus:ring-red-500 focus:outline-none shadow-sm"
+                                  title="Assign System Role"
+                                >
+                                  <option value="APPLICANT">APPLICANT (Student)</option>
+                                  <option value="COMMITTEE">COMMITTEE Member</option>
+                                  <option value="FINANCE">FINANCE Officer</option>
+                                  <option value="ADMINISTRATOR">ADMINISTRATOR</option>
+                                </select>
+
+                                <button
+                                  onClick={() => handleToggleStatus(u.id, u.is_active !== false, u.username)}
+                                  className={`p-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 transition-colors shadow-sm ${
+                                    u.is_active !== false 
+                                      ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100' 
+                                      : 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  }`}
+                                  title={u.is_active !== false ? "Suspend / Lock Account" : "Activate / Unlock Account"}
+                                >
+                                  {u.is_active !== false ? <Lock size={14} /> : <Unlock size={14} />}
+                                </button>
+
+                                <button
+                                  onClick={() => handleResetPassword(u.id, u.username)}
+                                  className="p-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+                                  title="Reset User Password"
+                                >
+                                  <KeyRound size={14} />
+                                </button>
+
+                                {user && user.id !== u.id && (
+                                  <button
+                                    onClick={() => handleDeleteUser(u.id, u.username)}
+                                    className="p-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+                                    title="Delete User Account"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
