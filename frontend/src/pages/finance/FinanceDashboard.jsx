@@ -13,9 +13,11 @@ import {
   Clock,
   Menu,
   X,
-  Download
+  Download,
+  FileText
 } from 'lucide-react';
 import NotificationCenter from '../../components/NotificationCenter';
+import PaymentVoucherModal from '../../components/PaymentVoucherModal';
 
 export default function FinanceDashboard() {
   const [user, setUser] = useState(null);
@@ -24,6 +26,7 @@ export default function FinanceDashboard() {
   const [activeTab, setActiveTab] = useState('disbursements');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -237,6 +240,12 @@ export default function FinanceDashboard() {
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <button 
+                        onClick={() => setIsVoucherModalOpen(true)}
+                        className="flex items-center gap-2.5 px-5 py-3 bg-[#121820] hover:bg-black text-white rounded-xl text-xs font-black shadow-lg shadow-slate-900/20 transition-all hover:scale-105 active:scale-95"
+                    >
+                        <FileText size={18} className="text-[#DAA520]" /> <span>Generate Payment Vouchers (PDF)</span>
+                    </button>
+                    <button 
                         onClick={handleExportCSV}
                         className="flex items-center gap-2.5 px-5 py-3 bg-[#0F6B38] hover:bg-[#094724] text-white rounded-xl text-xs font-black shadow-lg shadow-emerald-950/20 transition-all hover:scale-105 active:scale-95"
                     >
@@ -327,6 +336,15 @@ export default function FinanceDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Official Payment Voucher & Cheque Register PDF Modal */}
+      <PaymentVoucherModal 
+        isOpen={isVoucherModalOpen} 
+        onClose={() => setIsVoucherModalOpen(false)} 
+        applications={applications} 
+        user={user} 
+      />
+
     </div>
   );
 }
