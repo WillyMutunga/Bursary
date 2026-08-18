@@ -1,3 +1,4 @@
+# Recompile trigger: 2026-08-18 10:15:00
 from django.db import models
 from django.conf import settings
 import uuid
