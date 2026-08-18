@@ -1,13 +1,24 @@
+<IfModule mod_mime.c>
+  AddType image/png .png
+  AddType image/jpeg .jpg .jpeg
+  AddType image/svg+xml .svg
+  AddType image/x-icon .ico
+  AddType application/json .json
+  AddType application/manifest+json .webmanifest .json
+  AddType application/javascript .js
+  AddType text/css .css
+</IfModule>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
 
-  # Exclude API, Backend, Django Admin, and Manifest requests from React SPA rewriting
+  # Exclude API, static assets, and manifest requests from React SPA rewriting
   RewriteCond %{REQUEST_URI} ^/api [NC,OR]
   RewriteCond %{REQUEST_URI} ^/backend [NC,OR]
   RewriteCond %{REQUEST_URI} ^/admin [NC,OR]
-  RewriteCond %{REQUEST_URI} ^/manifest [NC]
+  RewriteCond %{REQUEST_URI} \.(png|jpg|jpeg|svg|ico|json|webmanifest|js|css)$ [NC]
   RewriteRule ^ - [L]
 
   RewriteCond %{REQUEST_FILENAME} !-f
