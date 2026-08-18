@@ -33,23 +33,36 @@ export default function Home() {
 
   const handleTrackSearch = async (e) => {
     e.preventDefault();
-    if (!trackRef) return;
+    const cleanRef = trackRef.trim();
+    if (!cleanRef) return;
     setIsSearching(true);
     setTrackResult(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/applications/?search=${trackRef}`);
-      if (res.ok) {
+      let res;
+      try {
+        res = await fetch(`${API_BASE_URL}/api/v1/applications/track/?ref=${encodeURIComponent(cleanRef)}`);
+      } catch (err) {
+        res = null;
+      }
+
+      if (!res || !res.ok) {
+        res = await fetch(`/v1/applications/track/?ref=${encodeURIComponent(cleanRef)}`);
+      }
+
+      if (res && res.ok) {
         const data = await res.json();
-        if (data.length > 0) {
-          setTrackResult(data[0]);
+        if (data.found) {
+          setTrackResult(data);
         } else {
-          setTrackResult({ notFound: true });
+          setTrackResult({ notFound: true, message: data.message });
         }
+      } else {
+        setTrackResult({ notFound: true, message: 'Could not connect to tracking server. Please check your reference.' });
       }
     } catch (err) {
-      console.error(err);
-      setTrackResult({ notFound: true });
+      console.error("Track search error:", err);
+      setTrackResult({ notFound: true, message: 'Network error. Please try again.' });
     } finally {
       setIsSearching(false);
     }

@@ -398,3 +398,37 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         logs = AuditLog.objects.all()[:150]
         serializer = AuditLogSerializer(logs, many=True)
         return Response(serializer.data)
+
+
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+
+class PublicApplicationTrackView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        ref = request.query_params.get('ref', '').strip()
+        if not ref:
+            return Response({'found': False, 'error': 'Reference number parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from django.db.models import Q
+        # Case-insensitive search by reference number substring or exact reference
+        app = Application.objects.filter(
+            Q(reference_number__iexact=ref) |
+            Q(reference_number__icontains=ref)
+        ).first()
+
+        if not app:
+            return Response({
+                'found': False,
+                'message': f'No application found matching reference "{ref}".'
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            'found': True,
+            'reference_number': app.reference_number,
+            'institution_name': app.institution_name,
+            'status': app.status,
+            'ward': app.ward,
+            'created_at': app.created_at
+        }, status=status.HTTP_200_OK)
