@@ -24,7 +24,9 @@ import {
   Filter,
   RefreshCw,
   Clock,
-  Sparkles
+  Sparkles,
+  Edit,
+  UserCog
 } from 'lucide-react';
 import NotificationCenter from '../../components/NotificationCenter';
 import AnalyticsCharts from '../../components/AnalyticsCharts';
@@ -41,6 +43,18 @@ export default function AdminDashboard() {
   const [appWindowOpen, setAppWindowOpen] = useState(true);
   const [auditLogs, setAuditLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // User Edit Modal States
+  const [editingUser, setEditingUser] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    username: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone_number: '',
+    national_id: '',
+    role: 'APPLICANT'
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -206,6 +220,45 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       alert('Error deleting user account');
+    }
+  };
+
+  const handleOpenEditModal = (u) => {
+    setEditingUser(u);
+    setEditFormData({
+      username: u.username || '',
+      first_name: u.first_name || '',
+      last_name: u.last_name || '',
+      email: u.email || '',
+      phone_number: u.phone_number || '',
+      national_id: u.national_id || '',
+      role: u.role || 'APPLICANT'
+    });
+  };
+
+  const handleSaveUserEdit = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/users/${editingUser.id}/role/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(editFormData)
+      });
+      if (res.ok) {
+        alert('User profile details updated successfully!');
+        setEditingUser(null);
+        fetchUsers(token);
+      } else {
+        alert('Failed to update user details');
+      }
+    } catch (err) {
+      alert('Error saving user profile edits');
     }
   };
 
@@ -671,6 +724,15 @@ export default function AdminDashboard() {
                                   <option value="ADMINISTRATOR">Administrator</option>
                                 </select>
 
+                                {/* Edit User Profile Button */}
+                                <button
+                                  onClick={() => handleOpenEditModal(u)}
+                                  className="p-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 text-xs font-bold flex items-center gap-1 transition-all shadow-sm"
+                                  title="Edit User Profile (Username, Name, Email, Phone, ID)"
+                                >
+                                  <Edit size={15} />
+                                </button>
+
                                 {/* Lock / Unlock Button */}
                                 <button
                                   onClick={() => handleToggleStatus(u.id, u.is_active !== false, u.username)}
@@ -968,6 +1030,124 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Edit User Profile Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="bg-[#0B1320] text-white p-6 flex justify-between items-center border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-tr from-amber-500 to-red-600 rounded-xl text-white shadow-md">
+                  <UserCog size={20} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base">Edit User Profile Details</h3>
+                  <p className="text-xs text-slate-400">Modifying profile for user: <strong className="text-amber-400">{editingUser.username}</strong></p>
+                </div>
+              </div>
+              <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUserEdit} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-extrabold text-[#0B1320] uppercase tracking-wider mb-1">Username</label>
+                  <input 
+                    type="text" 
+                    value={editFormData.username}
+                    onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-[#0B1320] focus:ring-2 focus:ring-red-500 focus:outline-none bg-slate-50 focus:bg-white transition-colors"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-extrabold text-[#0B1320] uppercase tracking-wider mb-1">National ID / Reg No</label>
+                  <input 
+                    type="text" 
+                    value={editFormData.national_id}
+                    onChange={(e) => setEditFormData({ ...editFormData, national_id: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-[#0B1320] focus:ring-2 focus:ring-red-500 focus:outline-none bg-slate-50 focus:bg-white transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-extrabold text-[#0B1320] uppercase tracking-wider mb-1">First Name</label>
+                  <input 
+                    type="text" 
+                    value={editFormData.first_name}
+                    onChange={(e) => setEditFormData({ ...editFormData, first_name: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-[#0B1320] focus:ring-2 focus:ring-red-500 focus:outline-none bg-slate-50 focus:bg-white transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-extrabold text-[#0B1320] uppercase tracking-wider mb-1">Last Name</label>
+                  <input 
+                    type="text" 
+                    value={editFormData.last_name}
+                    onChange={(e) => setEditFormData({ ...editFormData, last_name: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-[#0B1320] focus:ring-2 focus:ring-red-500 focus:outline-none bg-slate-50 focus:bg-white transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-extrabold text-[#0B1320] uppercase tracking-wider mb-1">Email Address</label>
+                  <input 
+                    type="email" 
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-[#0B1320] focus:ring-2 focus:ring-red-500 focus:outline-none bg-slate-50 focus:bg-white transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-extrabold text-[#0B1320] uppercase tracking-wider mb-1">Phone Number</label>
+                  <input 
+                    type="text" 
+                    value={editFormData.phone_number}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone_number: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-[#0B1320] focus:ring-2 focus:ring-red-500 focus:outline-none bg-slate-50 focus:bg-white transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-[#0B1320] uppercase tracking-wider mb-1">System Role</label>
+                <select 
+                  value={editFormData.role}
+                  onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
+                  className="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-[#0B1320] focus:ring-2 focus:ring-red-500 focus:outline-none bg-slate-50 focus:bg-white transition-colors"
+                >
+                  <option value="APPLICANT">Student (Applicant)</option>
+                  <option value="COMMITTEE">Committee Member</option>
+                  <option value="FINANCE">Finance Officer</option>
+                  <option value="ADMINISTRATOR">Administrator</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-5 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-red-900/20 transition-all flex items-center gap-1.5"
+                >
+                  <CheckCircle2 size={16} /> Save Profile Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

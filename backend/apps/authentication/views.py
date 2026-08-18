@@ -98,10 +98,10 @@ class AdminUserRoleUpdateView(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        if 'role' in request.data:
-            target_user.role = request.data['role']
-        if 'is_active' in request.data:
-            target_user.is_active = request.data['is_active']
+        for field in ['username', 'first_name', 'last_name', 'email', 'phone_number', 'national_id', 'role', 'is_active']:
+            if field in request.data:
+                setattr(target_user, field, request.data[field])
+
         if 'password' in request.data and request.data['password']:
             target_user.set_password(request.data['password'])
 
