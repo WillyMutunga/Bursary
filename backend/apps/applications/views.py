@@ -440,8 +440,9 @@ import mimetypes
 class DocumentDownloadView(APIView):
     permission_classes = (AllowAny,)
 
-    def get(self, request):
+    def get(self, request, doc_name=None):
         rel_path = (
+            doc_name or
             request.query_params.get('doc') or
             request.query_params.get('doc_id') or
             request.query_params.get('file') or

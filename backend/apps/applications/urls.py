@@ -6,6 +6,10 @@ router = DefaultRouter()
 router.register(r'applications', ApplicationViewSet, basename='application')
 
 urlpatterns = [
+    path('applications/download_doc/<str:doc_name>/', DocumentDownloadView.as_view(), name='download-doc-slug'),
+    path('applications/download_doc/<path:doc_name>', DocumentDownloadView.as_view()),
+    path('applications/documents/download/<str:doc_name>/', DocumentDownloadView.as_view()),
+    path('applications/documents/download/<path:doc_name>', DocumentDownloadView.as_view()),
     path('applications/download_doc/', DocumentDownloadView.as_view(), name='download-doc'),
     path('applications/download_doc', DocumentDownloadView.as_view()),
     path('applications/track/', PublicApplicationTrackView.as_view(), name='public-application-track'),
