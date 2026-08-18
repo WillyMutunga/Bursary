@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, parsers
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -26,7 +26,7 @@ def get_app_window_status():
 def set_app_window_status(is_open):
     try:
         with open(STATUS_FILE, 'w') as f:
-            json.dump({'is_window_open': bool(is_open)}, f)
+            json.dump({'is_window_open': is_open}, f)
     except Exception as e:
         print("Error saving window status file:", e)
 
@@ -54,6 +54,7 @@ def log_audit(user, action, details, request=None):
 class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
     def get_queryset(self):
         user = self.request.user

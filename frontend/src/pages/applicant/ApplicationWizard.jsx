@@ -39,6 +39,11 @@ export default function ApplicationWizard() {
   const [submissionResult, setSubmissionResult] = useState(null);
   const [isWindowLocked, setIsWindowLocked] = useState(false);
 
+  // Document File States
+  const [feeStructureFile, setFeeStructureFile] = useState(null);
+  const [admissionLetterFile, setAdmissionLetterFile] = useState(null);
+  const [idDocumentFile, setIdDocumentFile] = useState(null);
+
   useEffect(() => {
     const checkStatus = async () => {
       const token = localStorage.getItem('access_token');
@@ -100,37 +105,47 @@ export default function ApplicationWizard() {
         return window.location.href = '/login';
       }
 
-      // Step 1: Create application
+      // Step 1: Create application with Multipart FormData to support documents
+      const payloadFormData = new FormData();
+      const fields = {
+        ward: formData.ward || 'Emali/Mulala',
+        polling_station: formData.polling_station || 'Central Primary',
+        institution_type: formData.institution_type || 'University',
+        institution_name: formData.institution_name || 'Kenyatta University',
+        admission_number: formData.admission_number || 'KU/2024/001',
+        year_of_study: parseInt(formData.year_of_study || 1),
+        course_duration: parseInt(formData.course_duration || 4),
+        course_name: formData.course_name || 'BSc Information Technology',
+        requested_amount: parseFloat(formData.requested_amount || 25000),
+        fee_balance: parseFloat(formData.fee_balance || 35000),
+
+        // Extended fields
+        father_status: formData.father_status || 'ALIVE',
+        mother_status: formData.mother_status || 'ALIVE',
+        family_income: parseFloat(formData.family_income || 15000),
+        applicant_disability: formData.applicant_disability === 'true',
+        disability_type: formData.disability_type || '',
+        parent_disability: formData.parent_disability === 'true',
+        chronic_illness: formData.chronic_illness === 'true',
+        siblings_in_school: parseInt(formData.siblings_in_school || 2),
+        prev_bursary_received: formData.prev_bursary_received === 'true',
+        prev_bursary_amount: parseFloat(formData.prev_bursary_amount || 0)
+      };
+
+      Object.keys(fields).forEach(k => {
+        payloadFormData.append(k, fields[k]);
+      });
+
+      if (feeStructureFile) payloadFormData.append('fee_structure', feeStructureFile);
+      if (admissionLetterFile) payloadFormData.append('admission_letter', admissionLetterFile);
+      if (idDocumentFile) payloadFormData.append('id_document', idDocumentFile);
+
       const createRes = await fetch(API_BASE_URL + '/api/v1/applications/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          ward: formData.ward || 'Emali/Mulala',
-          polling_station: formData.polling_station || 'Central Primary',
-          institution_type: formData.institution_type || 'University',
-          institution_name: formData.institution_name || 'Kenyatta University',
-          admission_number: formData.admission_number || 'KU/2024/001',
-          year_of_study: parseInt(formData.year_of_study || 1),
-          course_duration: parseInt(formData.course_duration || 4),
-          course_name: formData.course_name || 'BSc Information Technology',
-          requested_amount: parseFloat(formData.requested_amount || 25000),
-          fee_balance: parseFloat(formData.fee_balance || 35000),
-
-          // Extended fields
-          father_status: formData.father_status || 'ALIVE',
-          mother_status: formData.mother_status || 'ALIVE',
-          family_income: parseFloat(formData.family_income || 15000),
-          applicant_disability: formData.applicant_disability === 'true',
-          disability_type: formData.disability_type || '',
-          parent_disability: formData.parent_disability === 'true',
-          chronic_illness: formData.chronic_illness === 'true',
-          siblings_in_school: parseInt(formData.siblings_in_school || 2),
-          prev_bursary_received: formData.prev_bursary_received === 'true',
-          prev_bursary_amount: parseFloat(formData.prev_bursary_amount || 0)
-        })
+        body: payloadFormData
       });
 
       if (createRes.status === 403) {
@@ -149,6 +164,28 @@ export default function ApplicationWizard() {
 
       const appData = await createRes.json();
       const appId = appData.id;
+
+      // Upload binary files to documents model as well
+      const uploadDoc = async (fileObj, docType) => {
+        if (!fileObj) return;
+        const docForm = new FormData();
+        docForm.append('application', appId);
+        docForm.append('document_type', docType);
+        docForm.append('file', fileObj);
+        try {
+          await fetch(`${API_BASE_URL}/api/v1/documents/`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: docForm
+          });
+        } catch (e) {
+          console.warn(`Doc upload error (${docType}):`, e);
+        }
+      };
+
+      await uploadDoc(feeStructureFile, 'FEE_STRUCTURE');
+      await uploadDoc(admissionLetterFile, 'ADMISSION_LETTER');
+      await uploadDoc(idDocumentFile, 'ID_CARD');
 
       // Step 2: Submit application
       const submitRes = await fetch(`${API_BASE_URL}/api/v1/applications/${appId}/submit/`, {
@@ -447,17 +484,112 @@ export default function ApplicationWizard() {
 
           {/* Step 8: Documents Upload */}
           {currentStep === 7 && (
-            <div className="space-y-4 animate-in fade-in duration-200 text-center">
-              <h2 className="text-lg font-bold text-navy border-b pb-2 text-left">Step 8: Document Verification Uploads</h2>
-              <div className="p-8 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 hover:bg-slate-100/80 transition-colors flex flex-col items-center justify-center gap-3">
-                <UploadCloud size={40} className="text-slate-400" />
-                <div>
-                  <p className="text-xs font-bold text-navy">Upload Fee Structure / Admission Letter / ID Copy</p>
-                  <p className="text-[11px] text-slate-500 mt-1">PDF or JPG formats up to 5MB</p>
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div>
+                <h2 className="text-lg font-bold text-navy border-b pb-2">Step 8: Required Verification Documents</h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Attach official verification documents (Fee Structure, Admission Letter, and Student ID/National ID). Accepted formats: PDF, JPG, PNG (Max 5MB each).
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                
+                {/* 1. Fee Structure / Fee Statement */}
+                <div className={`p-5 border-2 rounded-2xl transition-all flex flex-col justify-between space-y-4 ${
+                  feeStructureFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100/80'
+                }`}>
+                  <div className="space-y-2 text-center md:text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-red-100 text-red-700 rounded-full uppercase tracking-wider">Required</span>
+                      {feeStructureFile && <CheckCircle2 size={18} className="text-emerald-600" />}
+                    </div>
+                    <div className="p-3 bg-white rounded-xl w-fit shadow-sm border border-slate-200 mx-auto md:mx-0">
+                      <FileText size={24} className="text-red-600" />
+                    </div>
+                    <h3 className="font-bold text-xs text-navy">Fee Structure / Balance Statement</h3>
+                    <p className="text-[11px] text-slate-500">Official stamped fee structure or fee balance declaration from your institution.</p>
+                  </div>
+
+                  {feeStructureFile ? (
+                    <div className="p-2.5 bg-white rounded-xl border border-emerald-200 text-xs flex items-center justify-between gap-2">
+                      <span className="font-bold text-slate-700 truncate">{feeStructureFile.name}</span>
+                      <label className="text-[10px] font-extrabold text-blue-600 hover:underline cursor-pointer flex-shrink-0">
+                        Change
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files[0] && setFeeStructureFile(e.target.files[0])} />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="w-full py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-sm text-center cursor-pointer transition flex items-center justify-center gap-1.5">
+                      <UploadCloud size={16} /> Upload Fee Structure
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files[0] && setFeeStructureFile(e.target.files[0])} />
+                    </label>
+                  )}
                 </div>
-                <button type="button" className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm">
-                  Browse Files
-                </button>
+
+                {/* 2. Admission Letter / Student ID */}
+                <div className={`p-5 border-2 rounded-2xl transition-all flex flex-col justify-between space-y-4 ${
+                  admissionLetterFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100/80'
+                }`}>
+                  <div className="space-y-2 text-center md:text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-red-100 text-red-700 rounded-full uppercase tracking-wider">Required</span>
+                      {admissionLetterFile && <CheckCircle2 size={18} className="text-emerald-600" />}
+                    </div>
+                    <div className="p-3 bg-white rounded-xl w-fit shadow-sm border border-slate-200 mx-auto md:mx-0">
+                      <GraduationCap size={24} className="text-blue-600" />
+                    </div>
+                    <h3 className="font-bold text-xs text-navy">Admission Letter / Student ID</h3>
+                    <p className="text-[11px] text-slate-500">Copy of official admission letter or active student identity card.</p>
+                  </div>
+
+                  {admissionLetterFile ? (
+                    <div className="p-2.5 bg-white rounded-xl border border-emerald-200 text-xs flex items-center justify-between gap-2">
+                      <span className="font-bold text-slate-700 truncate">{admissionLetterFile.name}</span>
+                      <label className="text-[10px] font-extrabold text-blue-600 hover:underline cursor-pointer flex-shrink-0">
+                        Change
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files[0] && setAdmissionLetterFile(e.target.files[0])} />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="w-full py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-sm text-center cursor-pointer transition flex items-center justify-center gap-1.5">
+                      <UploadCloud size={16} /> Upload Admission Letter
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files[0] && setAdmissionLetterFile(e.target.files[0])} />
+                    </label>
+                  )}
+                </div>
+
+                {/* 3. National ID / Birth Certificate */}
+                <div className={`p-5 border-2 rounded-2xl transition-all flex flex-col justify-between space-y-4 ${
+                  idDocumentFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100/80'
+                }`}>
+                  <div className="space-y-2 text-center md:text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-slate-200 text-slate-700 rounded-full uppercase tracking-wider">Recommended</span>
+                      {idDocumentFile && <CheckCircle2 size={18} className="text-emerald-600" />}
+                    </div>
+                    <div className="p-3 bg-white rounded-xl w-fit shadow-sm border border-slate-200 mx-auto md:mx-0">
+                      <User size={24} className="text-emerald-600" />
+                    </div>
+                    <h3 className="font-bold text-xs text-navy">National ID / Birth Certificate</h3>
+                    <p className="text-[11px] text-slate-500">Applicant ID copy or Birth Certificate for identity verification.</p>
+                  </div>
+
+                  {idDocumentFile ? (
+                    <div className="p-2.5 bg-white rounded-xl border border-emerald-200 text-xs flex items-center justify-between gap-2">
+                      <span className="font-bold text-slate-700 truncate">{idDocumentFile.name}</span>
+                      <label className="text-[10px] font-extrabold text-blue-600 hover:underline cursor-pointer flex-shrink-0">
+                        Change
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files[0] && setIdDocumentFile(e.target.files[0])} />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="w-full py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-sm text-center cursor-pointer transition flex items-center justify-center gap-1.5">
+                      <UploadCloud size={16} /> Upload ID / Birth Cert
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => e.target.files[0] && setIdDocumentFile(e.target.files[0])} />
+                    </label>
+                  )}
+                </div>
+
               </div>
             </div>
           )}
@@ -467,21 +599,40 @@ export default function ApplicationWizard() {
             <div className="space-y-4 animate-in fade-in duration-200">
               <h2 className="text-lg font-bold text-navy border-b pb-2">Step 9: Review & Verify Information</h2>
               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-3 text-xs text-slate-700">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Ward:</span>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-slate-500 font-medium">Ward:</span>
                   <span className="font-bold text-navy">{formData.ward || 'Emali/Mulala'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Institution:</span>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-slate-500 font-medium">Institution:</span>
                   <span className="font-bold text-navy">{formData.institution_name || 'Kenyatta University'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Admission No:</span>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-slate-500 font-medium">Admission No:</span>
                   <span className="font-bold text-navy">{formData.admission_number || 'KU/2024/001'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Requested Amount:</span>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-slate-500 font-medium">Requested Amount:</span>
                   <span className="font-bold text-emerald-600">KSh {parseFloat(formData.requested_amount || 25000).toLocaleString()}</span>
+                </div>
+                
+                {/* Documents Upload Verification Summary */}
+                <div className="pt-2">
+                  <span className="text-slate-500 font-bold block mb-2">Attached Verification Documents:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className={`p-2.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 ${feeStructureFile ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
+                      <CheckCircle2 size={14} className={feeStructureFile ? 'text-emerald-600' : 'text-amber-500'} />
+                      <span>Fee Structure: {feeStructureFile ? feeStructureFile.name : 'Not Attached'}</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 ${admissionLetterFile ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
+                      <CheckCircle2 size={14} className={admissionLetterFile ? 'text-emerald-600' : 'text-amber-500'} />
+                      <span>Admission Letter: {admissionLetterFile ? admissionLetterFile.name : 'Not Attached'}</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 ${idDocumentFile ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                      <CheckCircle2 size={14} className={idDocumentFile ? 'text-emerald-600' : 'text-slate-400'} />
+                      <span>ID Document: {idDocumentFile ? idDocumentFile.name : 'Not Attached'}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
