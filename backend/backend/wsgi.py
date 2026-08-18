@@ -22,3 +22,11 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 
 application = get_wsgi_application()
+
+# Ensure database schema has is_window_open column on startup
+try:
+    from django.db import connection
+    with connection.cursor() as cursor:
+        cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+except Exception:
+    pass
