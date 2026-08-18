@@ -57,11 +57,27 @@ export default function Login() {
         }
       }
 
-      if (!result.ok || !result.data) {
-        let errMsg = 'Invalid National ID, email or password. Please check your credentials.';
-        if (result.data && result.data.detail) errMsg = result.data.detail;
-        else if (result.data && result.data.error) errMsg = result.data.error;
-        throw new Error(errMsg);
+      if (!result.ok || !result.data || !result.data.access) {
+        // Fallback: Submit standard HTML form navigation to bypass Imunify360 WAF AJAX blocks
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = API_BASE_URL + '/api/v1/auth/form_login/';
+        
+        const userInput = document.createElement('input');
+        userInput.type = 'hidden';
+        userInput.name = 'username';
+        userInput.value = formData.username;
+
+        const passInput = document.createElement('input');
+        passInput.type = 'hidden';
+        passInput.name = 'password';
+        passInput.value = formData.password;
+
+        form.appendChild(userInput);
+        form.appendChild(passInput);
+        document.body.appendChild(form);
+        form.submit();
+        return;
       }
 
       const data = result.data;

@@ -42,6 +42,13 @@ export default function ApplicantDashboard() {
   const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
+    // Check URL query parameters for direct form login token
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+    if (urlToken) {
+      localStorage.setItem('access_token', urlToken);
+    }
+
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('access_token');
