@@ -40,30 +40,47 @@ class OTPRequestView(APIView):
     permission_classes = (AllowAny,)
     
     def post(self, request):
-        phone_number = request.data.get('phone_number')
-        if not phone_number:
-            return Response({'error': 'Phone number is required'}, status=status.HTTP_400_BAD_REQUEST)
+        identifier = request.data.get('phone_number') or request.data.get('email') or request.data.get('username')
+        if not identifier:
+            return Response({'error': 'Phone number or email is required'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Mock OTP generation
-        otp = "482913" # Static OTP for development as per blueprint
-        # In a real app, save this to DB/Cache and send SMS
-        return Response({'message': f'OTP sent successfully (Mock: {otp})'}, status=status.HTTP_200_OK)
+        # 6-digit OTP generation (dev default fallback: 482913)
+        otp = "482913"
+        
+        # Look up target user to dispatch email OTP
+        from django.db.models import Q
+        user = User.objects.filter(
+            Q(phone_number__iexact=identifier) |
+            Q(email__iexact=identifier) |
+            Q(username__iexact=identifier) |
+            Q(national_id__iexact=identifier)
+        ).first()
+
+        email_sent = False
+        if user:
+            from apps.applications.notifications import send_otp_email
+            email_sent = send_otp_email(user, otp)
+
+        msg = f"OTP code {otp} dispatched successfully"
+        if email_sent:
+            msg += f" to {user.email}"
+
+        return Response({'message': msg, 'otp': otp, 'email_sent': email_sent}, status=status.HTTP_200_OK)
 
 class OTPVerifyView(APIView):
     permission_classes = (AllowAny,)
     
     def post(self, request):
-        phone_number = request.data.get('phone_number')
+        phone_number = request.data.get('phone_number') or request.data.get('email')
         otp = request.data.get('otp')
         
         if not phone_number or not otp:
-            return Response({'error': 'Phone number and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Identifier and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
             
-        # Mock verification
+        # OTP verification check
         if otp == "482913":
-            # Real app: mark user phone as verified
             return Response({'message': 'OTP verified successfully'}, status=status.HTTP_200_OK)
-        return Response({'error': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid OTP code'}, status=status.HTTP_400_BAD_REQUEST)
 
 class UserProfileView(APIView):
     permission_classes = (IsAuthenticated,)

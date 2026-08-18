@@ -137,10 +137,16 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email Configuration (cPanel SSL SMTP info@skysoftsystems.co.ke)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'mail.skysoftsystems.co.ke')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 465))
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'info@skysoftsystems.co.ke')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'William#20')
+DEFAULT_FROM_EMAIL = 'NG-CDF Kibwezi West Bursary System <info@skysoftsystems.co.ke>'
+SERVER_EMAIL = 'info@skysoftsystems.co.ke'
 CORS_ALLOW_ALL_ORIGINS = True
 
 REST_FRAMEWORK = {

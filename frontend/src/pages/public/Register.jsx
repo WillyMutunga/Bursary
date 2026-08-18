@@ -264,6 +264,14 @@ export default function Register() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1">Official Email Address</label>
+                  <div className="relative rounded-xl shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Mail size={16} /></div>
+                    <input type="email" required placeholder="student@gmail.com" className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl text-xs bg-white font-bold text-[#121820] focus:ring-2 focus:ring-[#0F6B38] focus:outline-none" onChange={e => setFormData({...formData, email: e.target.value})} />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1">Sub-County Ward</label>

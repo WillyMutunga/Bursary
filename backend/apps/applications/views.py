@@ -109,7 +109,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        serializer.save(applicant=self.request.user)
+        app = serializer.save(applicant=self.request.user)
+        try:
+            send_application_status_email(app, custom_event='DRAFT')
+        except Exception as e:
+            print("Draft notification error:", e)
 
     @action(detail=True, methods=['post'])
     def submit(self, request, pk=None):
@@ -120,11 +124,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         application.status = 'SUBMITTED'
         application.save()
         
-        # Trigger duplicate checking and eligibility score calculation synchronously for mock
+        # Trigger duplicate checking and eligibility score calculation
         VerificationEngine.process_application(application.id)
         
         # Refresh from db to get updated status/scores
         application.refresh_from_db()
+
+        # Send SUBMITTED Email Notification
+        try:
+            send_application_status_email(application, custom_event='SUBMITTED')
+        except Exception as e:
+            print("Submit notification error:", e)
+
         return Response({'status': application.status, 'reference_number': application.reference_number, 'score': application.eligibility_score})
 
     @action(detail=True, methods=['post'])
