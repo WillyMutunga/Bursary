@@ -11,12 +11,19 @@ from .notifications import send_application_status_email
 from django.db import connection
 
 def ensure_budget_window_column():
+    from django.db import connection
     try:
-        from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE; COMMIT;")
-    except Exception as e:
+        connection.rollback()
+    except Exception:
         pass
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+    except Exception as e:
+        try:
+            connection.rollback()
+        except Exception:
+            pass
 
 def log_audit(user, action, details, request=None):
     ip = None
