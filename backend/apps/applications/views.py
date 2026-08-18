@@ -8,6 +8,15 @@ from .serializers import ApplicationSerializer, ApplicantProfileSerializer, Audi
 from .engine import VerificationEngine
 from .notifications import send_application_status_email
 
+from django.db import connection
+
+def ensure_budget_window_column():
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+    except Exception as e:
+        pass
+
 def log_audit(user, action, details, request=None):
     ip = None
     if request:
@@ -153,15 +162,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         send_application_status_email(application)
 
         return Response({'status': application.status, 'awarded_amount': application.awarded_amount})
-
-from django.db import connection
-
-def ensure_budget_window_column():
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
-    except Exception as e:
-        pass
 
     @action(detail=False, methods=['get'])
     def budget(self, request):
