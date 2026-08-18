@@ -210,12 +210,12 @@ export default function NotificationCenter() {
         )}
       </button>
 
-      {/* Popover Dropdown (Fully Mobile Responsive) */}
+      {/* Popover Dropdown (High Z-Index Fixed Overlay to Prevent Overlapping) */}
       {isOpen && (
         <>
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40" onClick={() => setIsOpen(false)}></div>
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[9998]" onClick={() => setIsOpen(false)}></div>
           
-          <div className="fixed sm:absolute inset-x-3 top-20 sm:top-auto sm:right-0 sm:inset-x-auto mt-2 sm:mt-3 w-auto sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
+          <div className="fixed top-16 right-3 sm:right-6 sm:top-20 w-[92vw] sm:w-[400px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-[9999] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[80vh] flex flex-col">
             {/* Header */}
             <div className="px-4 py-3 bg-slate-900 text-white flex justify-between items-center flex-shrink-0">
               <div className="flex items-center gap-2">
