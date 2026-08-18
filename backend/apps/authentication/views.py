@@ -30,12 +30,15 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserSerializer
 
     def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         try:
-            return super().create(request, *args, **kwargs)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
-            return Response({
-                'error': f'Registration failed: {str(e)}'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': f'Registration failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
 class OTPRequestView(APIView):
     permission_classes = (AllowAny,)

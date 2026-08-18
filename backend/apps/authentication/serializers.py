@@ -9,13 +9,21 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'phone_number', 'national_id', 'role', 'password', 'first_name', 'last_name', 'is_active', 'date_joined')
 
     def create(self, validated_data):
+        phone = validated_data.get('phone_number')
+        if phone == '':
+            phone = None
+
+        nat_id = validated_data.get('national_id')
+        if nat_id == '':
+            nat_id = None
+
         user = User.objects.create_user(
             username=validated_data['username'],
-            email=validated_data.get('email', ''),
-            phone_number=validated_data.get('phone_number', ''),
-            national_id=validated_data.get('national_id', ''),
+            email=validated_data.get('email', '') or '',
+            phone_number=phone,
+            national_id=nat_id,
             role=validated_data.get('role', 'APPLICANT'),
-            password=validated_data['password'],
+            password=validated_data.get('password', 'Pass123!'),
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', '')
         )
