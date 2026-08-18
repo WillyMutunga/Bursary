@@ -7,6 +7,7 @@ import ApplicationWizard from './pages/applicant/ApplicationWizard';
 import CommitteeDashboard from './pages/committee/CommitteeDashboard';
 import FinanceDashboard from './pages/finance/FinanceDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import DocumentViewPage from './pages/public/DocumentViewPage';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/committee" element={<CommitteeDashboard />} />
         <Route path="/finance" element={<FinanceDashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/documents/view" element={<DocumentViewPage />} />
       </Routes>
     </Router>
   );
