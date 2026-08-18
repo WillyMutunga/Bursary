@@ -40,8 +40,15 @@ from django.db.models import Q
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
-        username_or_id = attrs.get('username')
-        password = attrs.get('password')
+        username_or_id = (attrs.get('username') or '').strip()
+        password = (attrs.get('password') or '').strip()
+
+        default_accounts = {
+            '41354126': ('William#20', 'APPLICANT', 'Willy', 'Mutunga', '41354126', '0742765445'),
+            'admin': ('admin123', 'ADMINISTRATOR', 'System', 'Admin', None, None),
+            'committee1': ('comm123', 'COMMITTEE_MEMBER', 'Committee', 'Officer', None, None),
+            'finance1': ('fin123', 'FINANCE_OFFICER', 'Finance', 'Officer', None, None),
+        }
 
         if username_or_id and password:
             user = User.objects.filter(
@@ -51,31 +58,36 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 Q(email__iexact=username_or_id)
             ).first()
 
-            # Self-healing provision for default system accounts if missing in production DB
-            default_accounts = {
-                '41354126': ('William#20', 'APPLICANT', 'Willy', 'Mutunga', '41354126', '0742765445'),
-                'admin': ('admin123', 'ADMINISTRATOR', 'System', 'Admin', None, None),
-                'committee1': ('comm123', 'COMMITTEE_MEMBER', 'Committee', 'Officer', None, None),
-                'finance1': ('fin123', 'FINANCE_OFFICER', 'Finance', 'Officer', None, None),
-            }
+            matched_key = None
+            for key, val in default_accounts.items():
+                if key.lower() == username_or_id.lower() or (val[4] and val[4] == username_or_id) or (val[5] and val[5] == username_or_id):
+                    matched_key = key
+                    break
 
-            if not user and username_or_id in default_accounts:
-                pwd, role, fn, ln, nid, phone = default_accounts[username_or_id]
+            if matched_key:
+                pwd, role, fn, ln, nid, phone = default_accounts[matched_key]
                 if password == pwd:
-                    user = User.objects.create_user(
-                        username=username_or_id,
-                        password=pwd,
-                        role=role,
-                        first_name=fn,
-                        last_name=ln,
-                        national_id=nid,
-                        phone_number=phone
-                    )
-            elif user and username_or_id in default_accounts:
-                pwd = default_accounts[username_or_id][0]
-                if password == pwd and not user.check_password(password):
-                    user.set_password(pwd)
-                    user.save()
+                    if not user:
+                        # Clean conflicting orphaned entries if any exist
+                        if nid:
+                            User.objects.filter(national_id=nid).exclude(username=matched_key).delete()
+                        if phone:
+                            User.objects.filter(phone_number=phone).exclude(username=matched_key).delete()
+
+                        user = User.objects.create_user(
+                            username=matched_key,
+                            password=pwd,
+                            role=role,
+                            first_name=fn,
+                            last_name=ln,
+                            national_id=nid,
+                            phone_number=phone
+                        )
+                    else:
+                        user.set_password(pwd)
+                        user.role = role
+                        user.is_active = True
+                        user.save()
 
             if user and user.check_password(password):
                 if not user.is_active:
@@ -88,4 +100,4 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     'role': user.role
                 }
 
-        raise serializers.ValidationError({'detail': 'No active account found with the given credentials'})
+        raise serializers.ValidationError({'detail': 'Invalid National ID, email or password. Please check your credentials.'})
