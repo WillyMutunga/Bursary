@@ -639,7 +639,7 @@ export default function AdminDashboard() {
 
                   <div className="flex flex-col sm:flex-row items-center gap-3">
                     {/* Role Filter Tabs */}
-                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 w-full sm:w-auto">
+                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 w-full sm:w-auto overflow-x-auto custom-scrollbar no-scrollbar whitespace-nowrap">
                       <button 
                         onClick={() => setRoleFilter('ALL')}
                         className={`px-3 py-1.5 rounded-lg transition-all ${roleFilter === 'ALL' ? 'bg-white text-navy shadow-sm' : 'hover:text-navy'}`}
@@ -686,8 +686,90 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Users Master Table */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                {/* Mobile Responsive Cards View (< lg screens) */}
+                <div className="lg:hidden space-y-3">
+                  {filteredUsers.map(u => (
+                    <div key={u.id} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 text-amber-400 flex items-center justify-center font-black text-sm shadow-sm border border-slate-700">
+                            {(u.username || 'U')[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-extrabold text-[#0B1320] text-sm">{u.username}</div>
+                            <div className="text-[11px] text-slate-500 font-medium">{u.email || u.phone_number || 'No contact info'}</div>
+                          </div>
+                        </div>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wide ${
+                          u.role === 'COMMITTEE' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                          u.role === 'FINANCE' ? 'bg-amber-100 text-amber-900 border border-amber-200' :
+                          u.role === 'ADMINISTRATOR' || u.role === 'SUPER_ADMINISTRATOR' || u.role === 'ADMIN' ? 'bg-gradient-to-r from-red-600 to-rose-700 text-white' :
+                          'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}>
+                          {u.role}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 text-slate-600 font-medium">
+                        <span>Nat ID: <strong className="text-slate-900">{u.national_id || 'N/A'}</strong></span>
+                        <span>Phone: <strong className="text-slate-900">{u.phone_number || 'N/A'}</strong></span>
+                        <span>
+                          {u.is_active !== false ? (
+                            <span className="text-emerald-700 font-bold flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Active
+                            </span>
+                          ) : (
+                            <span className="text-red-600 font-bold flex items-center gap-1">
+                              <Lock size={10} /> Suspended
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Touch Friendly Action Controls Bar */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                        <select 
+                          value={u.role} 
+                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                          className="flex-1 border border-slate-300 rounded-xl py-2 px-2 text-xs font-bold text-[#0B1320] bg-white focus:ring-2 focus:ring-red-500"
+                        >
+                          <option value="APPLICANT">Student</option>
+                          <option value="COMMITTEE">Committee</option>
+                          <option value="FINANCE">Finance</option>
+                          <option value="ADMINISTRATOR">Admin</option>
+                        </select>
+
+                        <button
+                          onClick={() => handleOpenEditModal(u)}
+                          className="p-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-bold text-xs flex items-center justify-center gap-1"
+                          title="Edit User Profile"
+                        >
+                          <Edit size={16} /> Edit
+                        </button>
+
+                        <button
+                          onClick={() => handleToggleStatus(u.id, u.is_active !== false, u.username)}
+                          className={`p-2 rounded-xl border font-bold text-xs flex items-center justify-center gap-1 ${
+                            u.is_active !== false ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                          }`}
+                        >
+                          {u.is_active !== false ? <Lock size={16} /> : <Unlock size={16} />}
+                        </button>
+
+                        <button
+                          onClick={() => handleResetPassword(u.id, u.username)}
+                          className="p-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-700 font-bold text-xs"
+                          title="Reset Password"
+                        >
+                          <KeyRound size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Users Master Table (>= lg screens) */}
+                <div className="hidden lg:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>

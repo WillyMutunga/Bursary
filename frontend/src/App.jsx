@@ -7,10 +7,12 @@ import ApplicationWizard from './pages/applicant/ApplicationWizard';
 import CommitteeDashboard from './pages/committee/CommitteeDashboard';
 import FinanceDashboard from './pages/finance/FinanceDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 function App() {
   return (
     <Router>
+      <PWAInstallPrompt />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />

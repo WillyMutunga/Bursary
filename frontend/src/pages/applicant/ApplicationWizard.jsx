@@ -253,8 +253,31 @@ export default function ApplicationWizard() {
           </button>
         </div>
 
-        {/* Steps Progress Header */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        {/* Mobile Step Header (< sm screens) */}
+        <div className="sm:hidden bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-red-600 uppercase tracking-wide">
+              Step {currentStep + 1} of {steps.length}: {steps[currentStep].title}
+            </span>
+            <span className="text-xs font-bold text-slate-500">
+              {Math.round(((currentStep + 1) / steps.length) * 100)}% Complete
+            </span>
+          </div>
+          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+            <div 
+              className="bg-gradient-to-r from-red-600 to-emerald-600 h-full transition-all duration-300 rounded-full"
+              style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+            ></div>
+          </div>
+          {currentStep < steps.length - 1 && (
+            <p className="text-[11px] text-slate-400 font-medium">
+              Next: <strong className="text-slate-700">{steps[currentStep + 1].title}</strong>
+            </p>
+          )}
+        </div>
+
+        {/* Desktop Steps Progress Header (>= sm screens) */}
+        <div className="hidden sm:block bg-white p-4 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto custom-scrollbar">
           <div className="flex items-center justify-between min-w-[700px]">
             {steps.map((step, idx) => {
               const IconComp = step.icon;
