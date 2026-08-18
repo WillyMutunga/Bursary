@@ -28,91 +28,30 @@ export default function Login() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    try {
-      let loginEndpoints = [
-        API_BASE_URL + '/api/v1/auth/session_login/',
-        API_BASE_URL + '/api/v1/auth/login/',
-        API_BASE_URL + '/api/v1/auth/authenticate/',
-        API_BASE_URL + '/api/v1/auth/user_login/',
-        '/auth/session_login/',
-        '/session_login/',
-        '/v1/auth/login/',
-        '/v1/auth/authenticate/'
-      ];
+    // Directly submit standard HTML form to bypass Imunify360 WAF AJAX blocks on all phones and laptops
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = API_BASE_URL + '/api/v1/auth/form_login/';
+    
+    const userInput = document.createElement('input');
+    userInput.type = 'hidden';
+    userInput.name = 'username';
+    userInput.value = formData.username;
 
-      let result = null;
-      for (const endpoint of loginEndpoints) {
-        result = await safeFetchJson(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        });
-        if (result.ok && result.data && result.data.access) {
-          break;
-        }
-      }
+    const passInput = document.createElement('input');
+    passInput.type = 'hidden';
+    passInput.name = 'password';
+    passInput.value = formData.password;
 
-      if (!result.ok || !result.data || !result.data.access) {
-        // Fallback: Submit standard HTML form navigation to bypass Imunify360 WAF AJAX blocks
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = API_BASE_URL + '/api/v1/auth/form_login/';
-        
-        const userInput = document.createElement('input');
-        userInput.type = 'hidden';
-        userInput.name = 'username';
-        userInput.value = formData.username;
-
-        const passInput = document.createElement('input');
-        passInput.type = 'hidden';
-        passInput.name = 'password';
-        passInput.value = formData.password;
-
-        form.appendChild(userInput);
-        form.appendChild(passInput);
-        document.body.appendChild(form);
-        form.submit();
-        return;
-      }
-
-      const data = result.data;
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
-      
-      // Fetch user role
-      let userResult = await safeFetchJson(API_BASE_URL + '/api/v1/auth/me/', {
-        headers: { 'Authorization': `Bearer ${data.access}` }
-      });
-      if (!userResult.ok) {
-        userResult = await safeFetchJson('/v1/auth/me/', {
-          headers: { 'Authorization': `Bearer ${data.access}` }
-        });
-      }
-
-      if (userResult.ok && userResult.data) {
-        const userData = userResult.data;
-        if (['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'].includes(userData.role)) {
-          navigate('/admin');
-        } else if (userData.role === 'COMMITTEE') {
-          navigate('/committee');
-        } else if (userData.role === 'FINANCE') {
-          navigate('/finance');
-        } else {
-          navigate('/applicant');
-        }
-      } else {
-        navigate('/applicant');
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
+    form.appendChild(userInput);
+    form.appendChild(passInput);
+    document.body.appendChild(form);
+    form.submit();
   };
 
   return (

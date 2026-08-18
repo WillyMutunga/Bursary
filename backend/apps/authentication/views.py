@@ -11,6 +11,7 @@ from .serializers import UserSerializer, UserUpdateSerializer, CustomTokenObtain
 import random
 
 import traceback
+from django.http import HttpResponse
 
 class CustomLoginView(TokenObtainPairView):
     permission_classes = (AllowAny,)
@@ -352,6 +353,7 @@ class DirectFormLoginView(View):
         login(request, user)
         refresh = RefreshToken.for_user(user)
         access = str(refresh.access_token)
+        refresh_str = str(refresh)
         
         target_page = '/applicant'
         if user.role in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN']:
@@ -361,4 +363,33 @@ class DirectFormLoginView(View):
         elif user.role in ['FINANCE_OFFICER', 'FINANCE']:
             target_page = '/finance'
 
-        return redirect(f"{target_page}?token={access}")
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Logging in...</title>
+    <style>
+        body {{ background: #0f172a; color: #fff; font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; align-items: center; justify-content: center; margin: 0; }}
+        .card {{ background: #1e293b; padding: 2rem 3rem; border-radius: 1rem; border: 1px solid #334155; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }}
+        .spinner {{ border: 3px solid #334155; border-top: 3px solid #10b981; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }}
+        @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="spinner"></div>
+        <h3 style="margin:0 0 0.5rem;font-size:1.1rem;">Authenticating Portal Account...</h3>
+        <p style="margin:0;font-size:0.85rem;color:#94a3b8;">Redirecting to your dashboard...</p>
+    </div>
+    <script>
+        try {{
+            localStorage.setItem('access_token', '{access}');
+            localStorage.setItem('refresh_token', '{refresh_str}');
+            localStorage.setItem('user_role', '{user.role}');
+            localStorage.setItem('username', '{user.username}');
+        }} catch(e) {{}}
+        window.location.href = '{target_page}?token={access}';
+    </script>
+</body>
+</html>"""
+        return HttpResponse(html_content, content_type='text/html')
