@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 export default function WafRedirectHandler() {
-  const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
@@ -12,29 +11,42 @@ export default function WafRedirectHandler() {
 
     if (token) {
       localStorage.setItem('access_token', token);
-      navigate('/applicant', { replace: true });
+      window.location.href = '/applicant';
       return;
     }
 
     if (pdata) {
       try {
-        const decodedUrl = decodeURIComponent(pdata);
-        const urlObj = new URL(decodedUrl);
-        navigate(urlObj.pathname || '/login', { replace: true });
-        return;
+        let decoded = pdata;
+        // Recursively decode double/triple URL-encoded strings from WAF
+        for (let i = 0; i < 5; i++) {
+          if (!decoded.includes('%')) break;
+          const prev = decoded;
+          decoded = decodeURIComponent(decoded);
+          if (decoded === prev) break;
+        }
+
+        if (decoded.includes('://')) {
+          const urlObj = new URL(decoded);
+          window.location.href = urlObj.pathname + urlObj.search;
+          return;
+        } else if (decoded.startsWith('/')) {
+          window.location.href = decoded;
+          return;
+        }
       } catch (e) {
-        // parsing fallback
+        console.error("WAF URL decode error:", e);
       }
     }
 
-    // Default fallback to home or login
+    // Default fallback: Redirect to saved token dashboard or login
     const savedToken = localStorage.getItem('access_token');
     if (savedToken) {
-      navigate('/applicant', { replace: true });
+      window.location.href = '/applicant';
     } else {
-      navigate('/login', { replace: true });
+      window.location.href = '/login';
     }
-  }, [location, navigate]);
+  }, [location]);
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6">
