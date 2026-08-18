@@ -180,32 +180,20 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def budget(self, request):
-        from django.db import connection
-        alter_err = "NO_ERROR"
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
-            connection.commit()
-        except Exception as e:
-            alter_err = f"ALTER_FAIL: {str(e)}"
-
-        try:
-            budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
-            total_budget = float(budget_obj.total_budget)
-            allocated = Application.objects.filter(status__in=['APPROVED', 'PAID']).aggregate(total=Sum('awarded_amount'))['total'] or 0
-            allocated_float = float(allocated)
-            remaining = max(0.0, total_budget - allocated_float)
-            
-            return Response({
-                'financial_year': budget_obj.financial_year,
-                'total_budget': total_budget,
-                'allocated_budget': allocated_float,
-                'remaining_budget': remaining,
-                'percentage_used': round((allocated_float / total_budget) * 100, 1) if total_budget > 0 else 0,
-                'is_window_open': get_app_window_status()
-            })
-        except Exception as ex:
-            return Response({'error': str(ex), 'alter_err': alter_err}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
+        total_budget = float(budget_obj.total_budget)
+        allocated = Application.objects.filter(status__in=['APPROVED', 'PAID']).aggregate(total=Sum('awarded_amount'))['total'] or 0
+        allocated_float = float(allocated)
+        remaining = max(0.0, total_budget - allocated_float)
+        
+        return Response({
+            'financial_year': budget_obj.financial_year,
+            'total_budget': total_budget,
+            'allocated_budget': allocated_float,
+            'remaining_budget': remaining,
+            'percentage_used': round((allocated_float / total_budget) * 100, 1) if total_budget > 0 else 0,
+            'is_window_open': get_app_window_status()
+        })
 
     @action(detail=False, methods=['get', 'post'])
     def toggle_window(self, request):
