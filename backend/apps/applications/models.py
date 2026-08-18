@@ -99,9 +99,10 @@ class Application(models.Model):
 class BursaryBudget(models.Model):
     financial_year = models.CharField(max_length=20, default='2026/2027', unique=True)
     total_budget = models.DecimalField(max_digits=12, decimal_places=2, default=20000000.00) # KSh 20,000,000 default
+    is_window_open = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"Budget FY {self.financial_year}: KSh {self.total_budget}"
+        return f"Budget FY {self.financial_year}: KSh {self.total_budget} (Window: {'OPEN' if self.is_window_open else 'LOCKED'})"
 
 class AuditLog(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)

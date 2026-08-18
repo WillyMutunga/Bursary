@@ -18,9 +18,8 @@ class CustomLoginView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         try:
-            from django.db import connection
-            with connection.cursor() as cursor:
-                cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+            from django.core.management import call_command
+            call_command('migrate', interactive=False)
         except Exception:
             pass
 
