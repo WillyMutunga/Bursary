@@ -363,6 +363,18 @@ class DirectFormLoginView(View):
         elif user.role in ['FINANCE_OFFICER', 'FINANCE']:
             target_page = '/finance'
 
+        import json
+        user_info = {
+            'username': user.username,
+            'role': user.role,
+            'first_name': user.first_name or '',
+            'last_name': user.last_name or '',
+            'email': user.email or '',
+            'phone_number': user.phone_number or '',
+            'national_id': user.national_id or ''
+        }
+        user_json = json.dumps(user_info).replace("'", "\\'")
+
         html_content = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -387,6 +399,7 @@ class DirectFormLoginView(View):
             localStorage.setItem('refresh_token', '{refresh_str}');
             localStorage.setItem('user_role', '{user.role}');
             localStorage.setItem('username', '{user.username}');
+            localStorage.setItem('user_data', JSON.stringify({user_json}));
         }} catch(e) {{}}
         window.location.href = '{target_page}?token={access}';
     </script>

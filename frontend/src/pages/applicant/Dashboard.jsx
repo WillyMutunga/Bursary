@@ -42,6 +42,21 @@ export default function ApplicantDashboard() {
   const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
+    // Read local stored user data for instant rendering on mobile/laptop browsers
+    const storedUserData = localStorage.getItem('user_data');
+    if (storedUserData) {
+      try {
+        const parsedUser = JSON.parse(storedUserData);
+        setUser(parsedUser);
+        setEditProfile({
+          first_name: parsedUser.first_name || '',
+          last_name: parsedUser.last_name || '',
+          email: parsedUser.email || '',
+          phone_number: parsedUser.phone_number || ''
+        });
+      } catch (e) {}
+    }
+
     // Check URL query parameters for direct form login token
     const urlParams = new URLSearchParams(window.location.search);
     const urlToken = urlParams.get('token');
