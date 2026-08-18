@@ -23,6 +23,7 @@ import AnalyticsCharts from '../../components/AnalyticsCharts';
 export default function CommitteeDashboard() {
   const [user, setUser] = useState(null);
   const [applications, setApplications] = useState([]);
+  const [allApplications, setAllApplications] = useState([]);
   const [selectedApp, setSelectedApp] = useState(null);
   const [awardAmount, setAwardAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,6 +31,7 @@ export default function CommitteeDashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [budgetData, setBudgetData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [newBudgetValue, setNewBudgetValue] = useState('');
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
   const [selectedWard, setSelectedWard] = useState('');
@@ -71,8 +73,9 @@ export default function CommitteeDashboard() {
       });
       if (appRes.ok) {
         const appData = await appRes.json();
-        // Filter for COMMITTEE_REVIEW and sort by score descending
-        const reviewApps = appData.filter(app => app.status === 'COMMITTEE_REVIEW');
+        setAllApplications(appData);
+        // Filter for active review queue (COMMITTEE_REVIEW, VERIFICATION, SUBMITTED) sorted by score descending
+        const reviewApps = appData.filter(app => ['COMMITTEE_REVIEW', 'VERIFICATION', 'SUBMITTED'].includes(app.status));
         reviewApps.sort((a, b) => (b.eligibility_score || 0) - (a.eligibility_score || 0));
         setApplications(reviewApps);
       }
@@ -272,6 +275,139 @@ export default function CommitteeDashboard() {
             {activeTab === 'analytics' && (
               <div className="animate-in fade-in duration-300">
                 <AnalyticsCharts />
+              </div>
+            )}
+
+            {activeTab === 'applications' && (
+              <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                  <div>
+                    <h2 className="text-xl font-black text-[#121820]">All Constituency Applications</h2>
+                    <p className="text-xs text-slate-500 font-medium">Complete record of all submitted bursary applications for FY 2026/2027.</p>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-3">
+                    <select
+                      value={selectedWard}
+                      onChange={(e) => setSelectedWard(e.target.value)}
+                      className="px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-sm"
+                    >
+                      <option value="">All Wards (6)</option>
+                      <option value="Emali/Mulala">Emali/Mulala</option>
+                      <option value="Nguumo">Nguumo</option>
+                      <option value="Makindu">Makindu</option>
+                      <option value="Nguu/Masumba">Nguu/Masumba</option>
+                      <option value="Kalamba/Nzaui">Kalamba/Nzaui</option>
+                      <option value="Kikovoo/Mavindini">Kikovoo/Mavindini</option>
+                    </select>
+
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-sm"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="SUBMITTED">Submitted / Verification</option>
+                      <option value="COMMITTEE_REVIEW">Awaiting Review</option>
+                      <option value="APPROVED">Approved</option>
+                      <option value="PAID">Disbursed (Paid)</option>
+                      <option value="REJECTED">Declined</option>
+                    </select>
+
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+                      <input 
+                        type="text" 
+                        placeholder="Search reference, student..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 w-56 shadow-sm" 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="px-6 py-4 font-extrabold text-slate-500 uppercase tracking-wider">Tracking Ref</th>
+                          <th className="px-6 py-4 font-extrabold text-slate-500 uppercase tracking-wider">Applicant & Ward</th>
+                          <th className="px-6 py-4 font-extrabold text-slate-500 uppercase tracking-wider">Institution</th>
+                          <th className="px-6 py-4 font-extrabold text-slate-500 uppercase tracking-wider">Score</th>
+                          <th className="px-6 py-4 font-extrabold text-slate-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-4 font-extrabold text-gold uppercase tracking-wider bg-amber-50">Awarded</th>
+                          <th className="px-6 py-4 font-extrabold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                        {allApplications
+                          .filter(app => {
+                            if (selectedWard && app.ward !== selectedWard) return false;
+                            if (statusFilter && app.status !== statusFilter) return false;
+                            if (searchTerm) {
+                              const term = searchTerm.toLowerCase();
+                              return (
+                                (app.reference_number && app.reference_number.toLowerCase().includes(term)) ||
+                                (app.institution_name && app.institution_name.toLowerCase().includes(term)) ||
+                                (app.admission_number && app.admission_number.toLowerCase().includes(term))
+                              );
+                            }
+                            return true;
+                          })
+                          .map((app) => (
+                            <tr key={app.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="font-mono font-bold text-navy">{app.reference_number}</span>
+                                <div className="text-[10px] text-slate-400 mt-0.5">{new Date(app.created_at).toLocaleDateString()}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="font-bold text-slate-900">{app.applicant_name || 'Student Beneficiary'}</span>
+                                <div className="text-[10px] text-slate-500 mt-0.5">{app.ward || 'Ward N/A'}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="font-semibold text-slate-800">{app.institution_name}</span>
+                                <div className="text-[10px] text-slate-500 mt-0.5">Adm: {app.admission_number}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap font-black text-slate-800">
+                                {app.eligibility_score || 0} pts
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                  app.status === 'APPROVED' || app.status === 'PAID'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : app.status === 'REJECTED'
+                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}>
+                                  {app.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap font-black text-sm text-navy bg-amber-50/30">
+                                KSh {parseFloat(app.awarded_amount || 0).toLocaleString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <button
+                                  onClick={() => { setSelectedApp(app); setAwardAmount(app.awarded_amount || ''); setActiveTab('review'); }}
+                                  className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-black transition"
+                                >
+                                  View Details
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        {allApplications.length === 0 && (
+                          <tr>
+                            <td colSpan="7" className="px-6 py-12 text-center text-slate-400">
+                              No applications recorded in the system yet.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
 
