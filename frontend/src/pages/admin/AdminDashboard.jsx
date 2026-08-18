@@ -40,7 +40,10 @@ export default function AdminDashboard() {
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [newBudgetValue, setNewBudgetValue] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [appWindowOpen, setAppWindowOpen] = useState(true);
+  const [appWindowOpen, setAppWindowOpen] = useState(() => {
+    const cached = localStorage.getItem('app_window_open');
+    return cached !== null ? cached === 'true' : true;
+  });
   const [auditLogs, setAuditLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -125,6 +128,7 @@ export default function AdminDashboard() {
         setNewBudgetValue(data.total_budget);
         if (data.is_window_open !== undefined) {
           setAppWindowOpen(data.is_window_open);
+          localStorage.setItem('app_window_open', data.is_window_open);
         }
       }
     } catch (err) {
@@ -146,6 +150,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         const data = await res.json();
         setAppWindowOpen(data.is_window_open);
+        localStorage.setItem('app_window_open', data.is_window_open);
         alert(`Application Window status updated to: ${data.is_window_open ? 'OPEN' : 'LOCKED'}`);
       } else {
         alert('Failed to update application window status');

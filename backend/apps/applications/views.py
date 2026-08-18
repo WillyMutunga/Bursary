@@ -154,8 +154,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
         return Response({'status': application.status, 'awarded_amount': application.awarded_amount})
 
+from django.db import connection
+
+def ensure_budget_window_column():
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+    except Exception as e:
+        pass
+
     @action(detail=False, methods=['get'])
     def budget(self, request):
+        ensure_budget_window_column()
         budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
         allocated = Application.objects.filter(status__in=['APPROVED', 'PAID']).aggregate(total=Sum('awarded_amount'))['total'] or 0
         total_budget = float(budget_obj.total_budget)
@@ -177,6 +187,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if user.role not in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'] and not user.is_superuser:
             return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
             
+        ensure_budget_window_column()
         budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
         is_open = request.data.get('is_window_open')
         if is_open is not None:
