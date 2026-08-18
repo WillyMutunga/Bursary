@@ -79,11 +79,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
         return qs.order_by('-created_at')
 
+from django.core.cache import cache
+
+def get_app_window_status():
+    val = cache.get('bursary_app_window_open')
+    return True if val is None else bool(val)
+
+def set_app_window_status(is_open):
+    cache.set('bursary_app_window_open', bool(is_open), timeout=None)
+
     def create(self, request, *args, **kwargs):
         user = request.user
-        ensure_budget_window_column()
-        budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
-        if not budget_obj.is_window_open and user.role == 'APPLICANT':
+        if not get_app_window_status() and user.role == 'APPLICANT':
             return Response(
                 {
                     'error': 'Application Window Locked. New bursary applications are currently closed by the constituency committee.',
@@ -174,32 +181,19 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def budget(self, request):
-        from django.db import connection
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN is_window_open BOOLEAN DEFAULT TRUE;")
-        except Exception:
-            pass
-
-        try:
-            budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
-            total_budget = float(budget_obj.total_budget)
-            is_window_open = budget_obj.is_window_open
-        except Exception:
-            total_budget = 20000000.0
-            is_window_open = True
-
+        budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
+        total_budget = float(budget_obj.total_budget)
         allocated = Application.objects.filter(status__in=['APPROVED', 'PAID']).aggregate(total=Sum('awarded_amount'))['total'] or 0
         allocated_float = float(allocated)
         remaining = max(0.0, total_budget - allocated_float)
         
         return Response({
-            'financial_year': '2026/2027',
+            'financial_year': budget_obj.financial_year,
             'total_budget': total_budget,
             'allocated_budget': allocated_float,
             'remaining_budget': remaining,
             'percentage_used': round((allocated_float / total_budget) * 100, 1) if total_budget > 0 else 0,
-            'is_window_open': is_window_open
+            'is_window_open': get_app_window_status()
         })
 
     @action(detail=False, methods=['get', 'post'])
@@ -208,39 +202,27 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if user.role not in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'] and not user.is_superuser:
             return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
 
-        from django.db import connection
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN is_window_open BOOLEAN DEFAULT TRUE;")
-        except Exception:
-            pass
+        current_status = get_app_window_status()
 
-        window_status = True
-        try:
-            budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
-            if request.method == 'POST' or request.query_params.get('toggle') == 'true':
-                is_open = request.data.get('is_window_open')
-                if is_open is not None:
-                    budget_obj.is_window_open = bool(is_open)
-                else:
-                    budget_obj.is_window_open = not budget_obj.is_window_open
-                budget_obj.save()
-            window_status = budget_obj.is_window_open
+        if request.method == 'POST' or request.query_params.get('toggle') == 'true':
+            req_val = request.data.get('is_window_open')
+            if req_val is None and request.query_params.get('is_window_open'):
+                req_val = request.query_params.get('is_window_open') == 'true'
+            
+            new_status = bool(req_val) if req_val is not None else not current_status
+            set_app_window_status(new_status)
+            current_status = new_status
 
             log_audit(
                 user=user,
                 action="APPLICATION_WINDOW_TOGGLE",
-                details=f"Application window status set to {'OPEN' if window_status else 'LOCKED'}.",
+                details=f"Application window status set to {'OPEN' if current_status else 'LOCKED'}.",
                 request=request
             )
-        except Exception:
-            req_val = request.data.get('is_window_open')
-            if req_val is not None:
-                window_status = bool(req_val)
 
         return Response({
             'status': 'Window status updated successfully',
-            'is_window_open': window_status
+            'is_window_open': current_status
         })
 
     @action(detail=True, methods=['post'])
