@@ -18,6 +18,13 @@ class CustomLoginView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+        except Exception:
+            pass
+
+        try:
             return super().post(request, *args, **kwargs)
         except Exception as e:
             return Response({
