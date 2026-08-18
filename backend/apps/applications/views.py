@@ -64,6 +64,16 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         user = request.user
+        budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
+        if not budget_obj.is_window_open and user.role == 'APPLICANT':
+            return Response(
+                {
+                    'error': 'Application Window Locked. New bursary applications are currently closed by the constituency committee.',
+                    'window_locked': True
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         existing_app = Application.objects.filter(applicant=user).exclude(status='REJECTED').first()
         if existing_app:
             ref = existing_app.reference_number or 'Draft Application'
@@ -157,7 +167,34 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             'total_budget': total_budget,
             'allocated_budget': allocated_float,
             'remaining_budget': remaining,
-            'percentage_used': round((allocated_float / total_budget) * 100, 1) if total_budget > 0 else 0
+            'percentage_used': round((allocated_float / total_budget) * 100, 1) if total_budget > 0 else 0,
+            'is_window_open': budget_obj.is_window_open
+        })
+
+    @action(detail=False, methods=['post'])
+    def toggle_window(self, request):
+        user = self.request.user
+        if user.role not in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'] and not user.is_superuser:
+            return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+            
+        budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
+        is_open = request.data.get('is_window_open')
+        if is_open is not None:
+            budget_obj.is_window_open = bool(is_open)
+        else:
+            budget_obj.is_window_open = not budget_obj.is_window_open
+        budget_obj.save()
+
+        log_audit(
+            user=user,
+            action="APPLICATION_WINDOW_TOGGLE",
+            details=f"Application window status set to {'OPEN' if budget_obj.is_window_open else 'LOCKED'}.",
+            request=request
+        )
+
+        return Response({
+            'status': 'Window status updated successfully',
+            'is_window_open': budget_obj.is_window_open
         })
 
     @action(detail=True, methods=['post'])

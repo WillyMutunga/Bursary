@@ -123,9 +123,35 @@ export default function AdminDashboard() {
         const data = await res.json();
         setBudgetData(data);
         setNewBudgetValue(data.total_budget);
+        if (data.is_window_open !== undefined) {
+          setAppWindowOpen(data.is_window_open);
+        }
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleToggleWindow = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(API_BASE_URL + '/api/v1/applications/toggle_window/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_window_open: !appWindowOpen })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAppWindowOpen(data.is_window_open);
+        alert(`Application Window status updated to: ${data.is_window_open ? 'OPEN' : 'LOCKED'}`);
+      } else {
+        alert('Failed to update application window status');
+      }
+    } catch (err) {
+      alert('Error updating application window status');
     }
   };
 
@@ -1018,10 +1044,10 @@ export default function AdminDashboard() {
                   </div>
 
                   <button 
-                    onClick={() => setAppWindowOpen(!appWindowOpen)}
+                    onClick={handleToggleWindow}
                     className={`px-5 py-3 rounded-xl text-xs font-extrabold text-white shadow-lg transition-all ${appWindowOpen ? 'bg-red-600 hover:bg-red-700 shadow-red-900/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20'}`}
                   >
-                    {appWindowOpen ? 'Lock Portal' : 'Open Portal'}
+                    {appWindowOpen ? 'Lock Portal Submissions' : 'Open Application Window'}
                   </button>
                 </div>
               </div>
