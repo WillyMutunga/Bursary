@@ -180,6 +180,14 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def budget(self, request):
+        try:
+            from django.db import connection
+            connection.autocommit = True
+            with connection.cursor() as cursor:
+                cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+        except Exception:
+            pass
+
         budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
         total_budget = float(budget_obj.total_budget)
         allocated = Application.objects.filter(status__in=['APPROVED', 'PAID']).aggregate(total=Sum('awarded_amount'))['total'] or 0
