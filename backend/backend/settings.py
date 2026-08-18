@@ -85,7 +85,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME', 'skysofts_bursary'),
-        'USER': os.getenv('DB_USER', 'skysofts'),
+        'USER': os.getenv('DB_USER', 'skysofts_Sharks'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'William#20'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
