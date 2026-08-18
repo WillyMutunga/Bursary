@@ -14,9 +14,7 @@ def ensure_budget_window_column():
     try:
         from django.db import connection
         with connection.cursor() as cursor:
-            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='applications_bursarybudget' AND column_name='is_window_open';")
-            if not cursor.fetchone():
-                cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN is_window_open BOOLEAN DEFAULT TRUE;")
+            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
     except Exception as e:
         pass
 
@@ -76,6 +74,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         user = request.user
+        ensure_budget_window_column()
         budget_obj, _ = BursaryBudget.objects.get_or_create(financial_year='2026/2027')
         if not budget_obj.is_window_open and user.role == 'APPLICANT':
             return Response(
