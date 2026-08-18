@@ -4,7 +4,7 @@
   AddType image/svg+xml .svg
   AddType image/x-icon .ico
   AddType application/json .json
-  AddType application/manifest+json .webmanifest .json
+  AddType application/manifest+json .webmanifest
   AddType application/javascript .js
   AddType text/css .css
 </IfModule>
@@ -14,13 +14,13 @@
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
 
-  # Exclude API, static assets, and manifest requests from React SPA rewriting
+  # Exclude backend API and Django admin requests from React SPA rewriting
   RewriteCond %{REQUEST_URI} ^/api [NC,OR]
   RewriteCond %{REQUEST_URI} ^/backend [NC,OR]
-  RewriteCond %{REQUEST_URI} ^/admin [NC,OR]
-  RewriteCond %{REQUEST_URI} \.(png|jpg|jpeg|svg|ico|json|webmanifest|js|css)$ [NC]
+  RewriteCond %{REQUEST_URI} ^/admin [NC]
   RewriteRule ^ - [L]
 
+  # Rewrite all non-file/non-directory requests (including WAF paths and SPA routes) to index.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME} !-l
