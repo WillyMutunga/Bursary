@@ -35,9 +35,12 @@ export default function Login() {
 
     try {
       let loginEndpoints = [
+        API_BASE_URL + '/api/v1/auth/session_login/',
         API_BASE_URL + '/api/v1/auth/login/',
         API_BASE_URL + '/api/v1/auth/authenticate/',
         API_BASE_URL + '/api/v1/auth/user_login/',
+        '/auth/session_login/',
+        '/session_login/',
         '/v1/auth/login/',
         '/v1/auth/authenticate/'
       ];

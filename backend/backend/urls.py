@@ -28,6 +28,7 @@ urlpatterns = [
     path('v1/', include('apps.applications.urls')),
     path('v1/', include('apps.documents.urls')),
     path('auth/', include('apps.authentication.urls')),
+    path('session_login/', include('apps.authentication.urls')),
     path('', include('apps.applications.urls')),
 ]
 
