@@ -441,10 +441,18 @@ class DocumentDownloadView(APIView):
     permission_classes = (AllowAny,)
 
     def get(self, request):
-        rel_path = request.query_params.get('path', '').strip()
-        filename = os.path.basename(rel_path) if rel_path else 'verification_document.pdf'
+        rel_path = (
+            request.query_params.get('doc') or
+            request.query_params.get('doc_id') or
+            request.query_params.get('file') or
+            request.query_params.get('path') or
+            'sample.pdf'
+        ).strip()
         
-        # Clean relative path
+        if not any(rel_path.lower().endswith(ext) for ext in ['.pdf', '.png', '.jpg', '.jpeg', '.svg']):
+            rel_path += '.pdf'
+
+        filename = os.path.basename(rel_path)
         clean_rel = rel_path.lstrip('/')
         if clean_rel.startswith('media/'):
             clean_rel = clean_rel[6:]
