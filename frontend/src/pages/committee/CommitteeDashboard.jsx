@@ -19,12 +19,22 @@ import {
 } from 'lucide-react';
 import NotificationCenter from '../../components/NotificationCenter';
 import AnalyticsCharts from '../../components/AnalyticsCharts';
+import DocumentPreviewModal from '../../components/DocumentPreviewModal';
+
+const getDocUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const baseUrl = API_BASE_URL.replace(/\/+$/, '');
+  const docPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${docPath}`;
+};
 
 export default function CommitteeDashboard() {
   const [user, setUser] = useState(null);
   const [applications, setApplications] = useState([]);
   const [allApplications, setAllApplications] = useState([]);
   const [selectedApp, setSelectedApp] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState(null); // { title: '', url: '' }
   const [awardAmount, setAwardAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('review');
@@ -661,33 +671,45 @@ export default function CommitteeDashboard() {
                                     </div>
                                 </div>
 
-                             {/* Uploaded Documents */}
-                             <div className="mb-6 bg-purple-50/50 p-4 rounded-xl border border-purple-100">
-                                 <h4 className="text-xs font-semibold text-purple-900 uppercase mb-3">Uploaded Verification Documents</h4>
-                                 <div className="flex flex-wrap gap-3">
-                                     {selectedApp.id_document ? (
-                                         <a href={`${API_BASE_URL}${selectedApp.id_document}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-2 bg-white text-purple-700 text-xs font-semibold rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors shadow-sm">
-                                             <FileText size={14} /> National ID Card
-                                         </a>
-                                     ) : (
-                                         <span className="text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">No ID Attached</span>
-                                     )}
-                                     {selectedApp.admission_letter ? (
-                                         <a href={`${API_BASE_URL}${selectedApp.admission_letter}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-2 bg-white text-purple-700 text-xs font-semibold rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors shadow-sm">
-                                             <FileText size={14} /> Admission Letter
-                                         </a>
-                                     ) : (
-                                         <span className="text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">No Admission Letter</span>
-                                     )}
-                                     {selectedApp.fee_structure ? (
-                                         <a href={`${API_BASE_URL}${selectedApp.fee_structure}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-2 bg-white text-purple-700 text-xs font-semibold rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors shadow-sm">
-                                             <FileText size={14} /> Fee Structure
-                                         </a>
-                                     ) : (
-                                         <span className="text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">No Fee Structure</span>
-                                     )}
-                                 </div>
-                             </div>
+                                {/* Uploaded Documents */}
+                                <div className="mb-6 bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                                    <h4 className="text-xs font-semibold text-purple-900 uppercase mb-3">Uploaded Verification Documents</h4>
+                                    <div className="flex flex-wrap gap-3">
+                                        {selectedApp.id_document ? (
+                                            <button 
+                                                type="button"
+                                                onClick={() => setPreviewDoc({ title: `National ID / Birth Certificate - ${selectedApp.reference_number}`, url: getDocUrl(selectedApp.id_document) })}
+                                                className="inline-flex items-center gap-2 px-3 py-2 bg-white text-purple-700 text-xs font-bold rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors shadow-sm cursor-pointer"
+                                            >
+                                                <FileText size={14} /> National ID Card
+                                            </button>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">No ID Attached</span>
+                                        )}
+                                        {selectedApp.admission_letter ? (
+                                            <button 
+                                                type="button"
+                                                onClick={() => setPreviewDoc({ title: `Admission Letter - ${selectedApp.reference_number}`, url: getDocUrl(selectedApp.admission_letter) })}
+                                                className="inline-flex items-center gap-2 px-3 py-2 bg-white text-purple-700 text-xs font-bold rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors shadow-sm cursor-pointer"
+                                            >
+                                                <FileText size={14} /> Admission Letter
+                                            </button>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">No Admission Letter</span>
+                                        )}
+                                        {selectedApp.fee_structure ? (
+                                            <button 
+                                                type="button"
+                                                onClick={() => setPreviewDoc({ title: `Fee Structure - ${selectedApp.reference_number}`, url: getDocUrl(selectedApp.fee_structure) })}
+                                                className="inline-flex items-center gap-2 px-3 py-2 bg-white text-purple-700 text-xs font-bold rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors shadow-sm cursor-pointer"
+                                            >
+                                                <FileText size={14} /> Fee Structure
+                                            </button>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">No Fee Structure</span>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Award Input */}
@@ -734,6 +756,15 @@ export default function CommitteeDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Interactive Document Viewer Modal */}
+      <DocumentPreviewModal
+        isOpen={Boolean(previewDoc)}
+        onClose={() => setPreviewDoc(null)}
+        docUrl={previewDoc?.url}
+        docTitle={previewDoc?.title}
+      />
+
     </div>
   );
 }
