@@ -12,8 +12,11 @@ from django.db import connection
 
 def ensure_budget_window_column():
     try:
+        from django.db import connection
         with connection.cursor() as cursor:
-            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+            cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='applications_bursarybudget' AND column_name='is_window_open';")
+            if not cursor.fetchone():
+                cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN is_window_open BOOLEAN DEFAULT TRUE;")
     except Exception as e:
         pass
 
