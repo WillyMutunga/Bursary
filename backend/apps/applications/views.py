@@ -14,7 +14,7 @@ def ensure_budget_window_column():
     try:
         from django.db import connection
         with connection.cursor() as cursor:
-            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+            cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE; COMMIT;")
     except Exception as e:
         pass
 

@@ -2,6 +2,7 @@ import urllib.request
 import urllib.parse
 import json
 import ssl
+import re
 
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
@@ -30,8 +31,6 @@ try:
 
 except urllib.error.HTTPError as e:
     body = e.read().decode('utf-8', errors='ignore')
-    idx = body.find("ProgrammingError")
-    if idx != -1:
-        print(body[idx:idx+800])
-    else:
-        print("ProgrammingError not found. First 500 chars:", body[:500])
+    for line in body.splitlines():
+        if 'Exception' in line or 'column' in line or 'Table' in line or 'table' in line or 'django.db' in line or 'ProgrammingError' in line:
+            print("MATCH:", line[:200])
