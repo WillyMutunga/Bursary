@@ -1,6 +1,6 @@
 """
 WSGI config for backend project.
-Reload trigger: 2026-08-18 09:59:30
+Reload trigger: 2026-08-18 10:01:00
 """
 
 import os
