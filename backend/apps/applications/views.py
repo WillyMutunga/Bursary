@@ -196,6 +196,27 @@ def set_app_window_status(is_open):
             'is_window_open': get_app_window_status()
         })
 
+    @action(detail=False, methods=['get'])
+    def fix_schema(self, request):
+        from django.db import connection
+        output = []
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")
+                tables = [row[0] for row in cursor.fetchall()]
+                output.append(f"Tables: {tables}")
+
+                try:
+                    cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
+                    output.append("Successfully ran ALTER TABLE ADD COLUMN is_window_open")
+                except Exception as e1:
+                    output.append(f"ALTER TABLE error: {str(e1)}")
+
+        except Exception as e2:
+            output.append(f"Main error: {str(e2)}")
+
+        return Response({'result': output})
+
     @action(detail=False, methods=['get', 'post'])
     def toggle_window(self, request):
         user = self.request.user
