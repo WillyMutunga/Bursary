@@ -1,7 +1,7 @@
 # Disable Apache MultiViews Content Negotiation to prevent 415 Unsupported Media Type errors
 Options -MultiViews
 
-# Disable Apache ModSecurity / Bot Protection scanning for API POST requests
+# Disable Apache ModSecurity / Bot Protection scanning for API & Login requests
 <IfModule mod_security2.c>
   SecRuleEngine Off
   SecFilterEngine Off
@@ -11,6 +11,12 @@ Options -MultiViews
 <IfModule mod_security.c>
   SecFilterEngine Off
   SecFilterScanPOST Off
+</IfModule>
+
+# Disable Imunify360 WebShield Interception for API and Login routes
+<IfModule mod_env.c>
+  SetEnv MODSEC_BYPASS 1
+  SetEnv IMUNIFY360_BYPASS 1
 </IfModule>
 
 <IfModule mod_headers.c>
@@ -44,8 +50,10 @@ Options -MultiViews
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
 
-  # Exclude backend API and Django admin requests from React SPA rewriting
+  # Exclude backend API, Django admin, and portal_login from React SPA rewriting
   RewriteCond %{REQUEST_URI} ^/api [NC,OR]
+  RewriteCond %{REQUEST_URI} ^/portal_login [NC,OR]
+  RewriteCond %{REQUEST_URI} ^/login_gateway [NC,OR]
   RewriteCond %{REQUEST_URI} ^/backend [NC,OR]
   RewriteCond %{REQUEST_URI} ^/admin [NC]
   RewriteRule ^ - [L]

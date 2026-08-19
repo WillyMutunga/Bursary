@@ -40,13 +40,27 @@ export default function Login() {
       API_BASE_URL + '/api/v1/auth/login/'
     ];
 
+    const formBody = new URLSearchParams();
+    formBody.append('username', formData.username);
+    formBody.append('password', formData.password);
+
     for (const url of endpoints) {
       try {
-        const res = await safeFetchJson(url, {
+        let res = await safeFetchJson(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify(formData)
         });
+
+        if (!res.ok) {
+          res = await safeFetchJson(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            credentials: 'same-origin',
+            body: formBody.toString()
+          });
+        }
 
         if (res.ok && res.data && (res.data.access || res.data.status === 'SUCCESS')) {
           const data = res.data;
