@@ -285,97 +285,99 @@ class DirectFormLoginView(View):
     def post(self, request):
         username = (request.POST.get('username') or '').strip()
         password = (request.POST.get('password') or '').strip()
+        try:
+            username = request.POST.get('username', '').strip()
+            password = request.POST.get('password', '').strip()
 
-        default_accounts = {
-            '41354126': ('William#20', 'APPLICANT', 'Willy', 'Mutunga', '41354126', '0742765445'),
-            'admin': ('admin123', 'ADMINISTRATOR', 'System', 'Admin', None, None),
-            'committee1': ('comm123', 'COMMITTEE_MEMBER', 'Committee', 'Officer', None, None),
-            'finance1': ('fin123', 'FINANCE_OFFICER', 'Finance', 'Officer', None, None),
-        }
+            if not username or not password:
+                return HttpResponse("<h3>Username and password required.</h3>", status=400)
 
-        user = User.objects.filter(
-            Q(username__iexact=username) |
-            Q(first_name__iexact=username) |
-            Q(last_name__iexact=username) |
-            Q(national_id__iexact=username) |
-            Q(phone_number__iexact=username) |
-            Q(email__iexact=username)
-        ).first()
+            default_accounts = {
+                'admin': ('William#20', 'ADMINISTRATOR', 'System', 'Administrator', None, None),
+                'committee1': ('William#20', 'COMMITTEE_MEMBER', 'Committee', 'Member', None, None),
+                'finance1': ('William#20', 'FINANCE_OFFICER', 'Finance', 'Officer', None, None),
+                '41354126': ('William#20', 'APPLICANT', 'Willy', 'Mutunga', '41354126', '0742765445'),
+                'Christine': ('William#20', 'APPLICANT', 'Christine', 'Mutunga', '41354126', '0742765445')
+            }
 
-        matched_key = None
-        for key, val in default_accounts.items():
-            if key.lower() == username.lower() or (val[4] and val[4] == username) or (val[5] and val[5] == username):
-                matched_key = key
-                break
+            user = User.objects.filter(
+                Q(username__iexact=username) |
+                Q(first_name__iexact=username) |
+                Q(last_name__iexact=username) |
+                Q(national_id__iexact=username) |
+                Q(phone_number__iexact=username) |
+                Q(email__iexact=username)
+            ).first()
 
-        if matched_key:
-            pwd, role, fn, ln, nid, phone = default_accounts[matched_key]
-            if not user:
-                if nid:
-                    User.objects.filter(national_id=nid).exclude(username=matched_key).delete()
-                if phone:
-                    User.objects.filter(phone_number=phone).exclude(username=matched_key).delete()
+            matched_key = None
+            for key, val in default_accounts.items():
+                if key.lower() == username.lower() or (val[4] and val[4] == username) or (val[5] and val[5] == username):
+                    matched_key = key
+                    break
+
+            if matched_key:
+                pwd, role, fn, ln, nid, phone = default_accounts[matched_key]
+                if not user:
+                    user = User.objects.create_user(
+                        username=matched_key,
+                        password=password,
+                        role=role,
+                        first_name=fn,
+                        last_name=ln,
+                        national_id=nid,
+                        phone_number=phone
+                    )
+                else:
+                    user.set_password(password)
+                    user.role = role
+                    user.is_active = True
+                    user.save()
+            elif not user:
+                clean_username = username.replace(' ', '_').lower()
+                base_username = clean_username
+                counter = 1
+                while User.objects.filter(username=clean_username).exists():
+                    clean_username = f"{base_username}_{counter}"
+                    counter += 1
 
                 user = User.objects.create_user(
-                    username=matched_key,
+                    username=clean_username,
                     password=password,
-                    role=role,
-                    first_name=fn,
-                    last_name=ln,
-                    national_id=nid,
-                    phone_number=phone
+                    role='APPLICANT',
+                    first_name=username,
+                    is_active=True
                 )
             else:
                 user.set_password(password)
-                user.role = role
                 user.is_active = True
                 user.save()
-        elif not user:
-            clean_username = username.replace(' ', '_').lower()
-            base_username = clean_username
-            counter = 1
-            while User.objects.filter(username=clean_username).exists():
-                clean_username = f"{base_username}_{counter}"
-                counter += 1
 
-            user = User.objects.create_user(
-                username=clean_username,
-                password=password,
-                role='APPLICANT',
-                first_name=username,
-                is_active=True
-            )
-        else:
-            user.set_password(password)
-            user.is_active = True
-            user.save()
+            login(request, user)
+            refresh = RefreshToken.for_user(user)
+            access = str(refresh.access_token)
+            refresh_str = str(refresh)
+            
+            target_page = '/applicant'
+            if user.role in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN']:
+                target_page = '/admin'
+            elif user.role in ['COMMITTEE_MEMBER', 'COMMITTEE']:
+                target_page = '/committee'
+            elif user.role in ['FINANCE_OFFICER', 'FINANCE']:
+                target_page = '/finance'
 
-        login(request, user)
-        refresh = RefreshToken.for_user(user)
-        access = str(refresh.access_token)
-        refresh_str = str(refresh)
-        
-        target_page = '/applicant'
-        if user.role in ['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN']:
-            target_page = '/admin'
-        elif user.role in ['COMMITTEE_MEMBER', 'COMMITTEE']:
-            target_page = '/committee'
-        elif user.role in ['FINANCE_OFFICER', 'FINANCE']:
-            target_page = '/finance'
+            import json
+            user_info = {
+                'username': user.username,
+                'role': user.role,
+                'first_name': user.first_name or '',
+                'last_name': user.last_name or '',
+                'email': user.email or '',
+                'phone_number': user.phone_number or '',
+                'national_id': user.national_id or ''
+            }
+            user_json_raw = json.dumps(user_info)
 
-        import json
-        user_info = {
-            'username': user.username,
-            'role': user.role,
-            'first_name': user.first_name or '',
-            'last_name': user.last_name or '',
-            'email': user.email or '',
-            'phone_number': user.phone_number or '',
-            'national_id': user.national_id or ''
-        }
-        user_json = json.dumps(user_info).replace("'", "\\'")
-
-        html_content = f"""<!DOCTYPE html>
+            html_content = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -399,10 +401,14 @@ class DirectFormLoginView(View):
             localStorage.setItem('refresh_token', '{refresh_str}');
             localStorage.setItem('user_role', '{user.role}');
             localStorage.setItem('username', '{user.username}');
-            localStorage.setItem('user_data', JSON.stringify({user_json}));
+            localStorage.setItem('user_data', JSON.stringify({user_json_raw}));
         }} catch(e) {{}}
         window.location.href = '{target_page}?token={access}';
     </script>
 </body>
 </html>"""
-        return HttpResponse(html_content, content_type='text/html')
+            return HttpResponse(html_content, content_type='text/html')
+        except Exception as err:
+            import traceback
+            traceback.print_exc()
+            return HttpResponse(f"<h3>Authentication error occurred. Please try again.</h3><p>{str(err)}</p>", status=500)
