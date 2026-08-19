@@ -98,24 +98,56 @@ export default function Login() {
       let lastName = '';
       let nationalId = cleanUser;
       let phone = '0742765445';
+      let email = `${cleanUserLower}@gmail.com`;
 
       if (['admin', 'administrator'].includes(cleanUserLower)) {
         role = 'ADMINISTRATOR';
         firstName = 'System';
         lastName = 'Administrator';
-      } else if (['committee', 'committee1'].includes(cleanUserLower)) {
+        email = 'admin@ngcdf.go.ke';
+      } else if (['christine', 'committee', 'committee1'].includes(cleanUserLower)) {
         role = 'COMMITTEE_MEMBER';
-        firstName = 'Committee';
-        lastName = 'Officer';
-      } else if (['finance', 'finance1'].includes(cleanUserLower)) {
+        firstName = 'Christine';
+        lastName = 'Mbatha';
+        email = 'committee@kibweziwest.go.ke';
+        phone = '0712345678';
+      } else if (['fidelis', 'finance', 'finance1'].includes(cleanUserLower)) {
         role = 'FINANCE_OFFICER';
-        firstName = 'Finance';
-        lastName = 'Officer';
-      } else if (['41354126', 'willy', 'christine'].includes(cleanUserLower)) {
+        firstName = 'Fidelis';
+        lastName = 'Muendo';
+        email = 'finance@kibweziwest.go.ke';
+        phone = '0799922006';
+        nationalId = '45607854';
+      } else if (cleanUserLower === '37593058') {
         role = 'APPLICANT';
-        firstName = cleanUserLower === 'christine' ? 'Christine' : 'Willy';
+        firstName = 'Benedict';
+        lastName = 'Mwati';
+        nationalId = '37593058';
+        phone = '0797070826';
+      } else if (cleanUserLower === '41206206') {
+        role = 'APPLICANT';
+        firstName = 'Caleb';
+        lastName = 'Chege';
+        nationalId = '41206206';
+        phone = '0791481778';
+      } else if (cleanUserLower === '41393060') {
+        role = 'APPLICANT';
+        firstName = 'Derrick';
+        lastName = 'Gitau';
+        nationalId = '41393060';
+        phone = '0711406920';
+      } else if (cleanUserLower === '12345678') {
+        role = 'APPLICANT';
+        firstName = 'Muli';
+        lastName = 'Mukiti';
+        nationalId = '12345678';
+        phone = '0711234567';
+      } else if (['41354126', 'willy'].includes(cleanUserLower)) {
+        role = 'APPLICANT';
+        firstName = 'Willy';
         lastName = 'Mutunga';
         nationalId = '41354126';
+        phone = '0742765445';
       }
 
       const mockUserData = {
