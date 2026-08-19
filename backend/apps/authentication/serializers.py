@@ -49,76 +49,36 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
         if not username_or_id or not password:
             raise serializers.ValidationError({'detail': 'Please provide both National ID/username and password.'})
 
-        # Search across username, first_name, last_name, national_id, phone_number, and email
+        # Query real database user by username, national_id, email, or phone_number
         user = User.objects.filter(
             Q(username__iexact=username_or_id) |
-            Q(first_name__iexact=username_or_id) |
-            Q(last_name__iexact=username_or_id) |
             Q(national_id__iexact=username_or_id) |
-            Q(phone_number__iexact=username_or_id) |
-            Q(email__iexact=username_or_id)
+            Q(email__iexact=username_or_id) |
+            Q(phone_number__iexact=username_or_id)
         ).first()
 
-        default_accounts = {
-            '41354126': ('William#20', 'APPLICANT', 'Willy', 'Mutunga', '41354126', '0742765445'),
-            'admin': ('admin123', 'ADMINISTRATOR', 'System', 'Admin', None, None),
-            'committee1': ('comm123', 'COMMITTEE_MEMBER', 'Committee', 'Officer', None, None),
-            'finance1': ('fin123', 'FINANCE_OFFICER', 'Finance', 'Officer', None, None),
-        }
+        if not user or not user.check_password(password):
+            raise serializers.ValidationError({'detail': 'Invalid National ID/username or password.'})
 
-        matched_key = None
-        for key, val in default_accounts.items():
-            if key.lower() == username_or_id.lower() or (val[4] and val[4] == username_or_id) or (val[5] and val[5] == username_or_id):
-                matched_key = key
-                break
-
-        if matched_key:
-            pwd, role, fn, ln, nid, phone = default_accounts[matched_key]
-            if not user:
-                if nid:
-                    User.objects.filter(national_id=nid).exclude(username=matched_key).delete()
-                if phone:
-                    User.objects.filter(phone_number=phone).exclude(username=matched_key).delete()
-
-                user = User.objects.create_user(
-                    username=matched_key,
-                    password=password,
-                    role=role,
-                    first_name=fn,
-                    last_name=ln,
-                    national_id=nid,
-                    phone_number=phone
-                )
-            else:
-                user.set_password(password)
-                user.role = role
-                user.is_active = True
-                user.save()
-        elif not user:
-            # Auto-provision applicant account for new test/demo identifiers like Christine
-            clean_username = username_or_id.replace(' ', '_').lower()
-            base_username = clean_username
-            counter = 1
-            while User.objects.filter(username=clean_username).exists():
-                clean_username = f"{base_username}_{counter}"
-                counter += 1
-
-            user = User.objects.create_user(
-                username=clean_username,
-                password=password,
-                role='APPLICANT',
-                first_name=username_or_id,
-                is_active=True
-            )
-        else:
-            user.set_password(password)
-            user.is_active = True
-            user.save()
+        if not user.is_active:
+            raise serializers.ValidationError({'detail': 'This account has been deactivated.'})
 
         refresh = RefreshToken.for_user(user)
+        user_data = {
+            'username': user.username,
+            'role': user.role,
+            'first_name': user.first_name or '',
+            'last_name': user.last_name or '',
+            'email': user.email or '',
+            'phone_number': user.phone_number or '',
+            'national_id': user.national_id or ''
+        }
+
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
             'username': user.username,
-            'role': user.role
+            'role': user.role,
+            'status': 'SUCCESS',
+            'user_data': user_data
         }

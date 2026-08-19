@@ -307,55 +307,16 @@ class DirectFormLoginView(View):
 
             user = User.objects.filter(
                 Q(username__iexact=username) |
-                Q(first_name__iexact=username) |
-                Q(last_name__iexact=username) |
                 Q(national_id__iexact=username) |
-                Q(phone_number__iexact=username) |
-                Q(email__iexact=username)
+                Q(email__iexact=username) |
+                Q(phone_number__iexact=username)
             ).first()
 
-            matched_key = None
-            for key, val in default_accounts.items():
-                if key.lower() == username.lower() or (val[4] and val[4] == username) or (val[5] and val[5] == username):
-                    matched_key = key
-                    break
+            if not user or not user.check_password(password):
+                return Response({'detail': 'Invalid National ID/username or password.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-            if matched_key:
-                pwd, role, fn, ln, nid, phone = default_accounts[matched_key]
-                if not user:
-                    user = User.objects.create_user(
-                        username=matched_key,
-                        password=password,
-                        role=role,
-                        first_name=fn,
-                        last_name=ln,
-                        national_id=nid,
-                        phone_number=phone
-                    )
-                else:
-                    user.set_password(password)
-                    user.role = role
-                    user.is_active = True
-                    user.save()
-            elif not user:
-                clean_username = username.replace(' ', '_').lower()
-                base_username = clean_username
-                counter = 1
-                while User.objects.filter(username=clean_username).exists():
-                    clean_username = f"{base_username}_{counter}"
-                    counter += 1
-
-                user = User.objects.create_user(
-                    username=clean_username,
-                    password=password,
-                    role='APPLICANT',
-                    first_name=username,
-                    is_active=True
-                )
-            else:
-                user.set_password(password)
-                user.is_active = True
-                user.save()
+            if not user.is_active:
+                return Response({'detail': 'This account has been deactivated.'}, status=status.HTTP_403_FORBIDDEN)
 
             login(request, user)
             refresh = RefreshToken.for_user(user)
