@@ -227,11 +227,6 @@ class SessionLoginView(APIView):
         if matched_key:
             pwd, role, fn, ln, nid, phone = default_accounts[matched_key]
             if not user:
-                if nid:
-                    User.objects.filter(national_id=nid).exclude(username=matched_key).delete()
-                if phone:
-                    User.objects.filter(phone_number=phone).exclude(username=matched_key).delete()
-
                 user = User.objects.create_user(
                     username=matched_key,
                     password=password,
@@ -268,12 +263,22 @@ class SessionLoginView(APIView):
 
         login(request, user)
         refresh = RefreshToken.for_user(user)
+        user_data = {
+            'username': user.username,
+            'role': user.role,
+            'first_name': user.first_name or '',
+            'last_name': user.last_name or '',
+            'email': user.email or '',
+            'phone_number': user.phone_number or '',
+            'national_id': user.national_id or ''
+        }
         return Response({
             'status': 'SUCCESS',
             'access': str(refresh.access_token),
             'refresh': str(refresh),
             'username': user.username,
-            'role': user.role
+            'role': user.role,
+            'user_data': user_data
         }, status=status.HTTP_200_OK)
 
 

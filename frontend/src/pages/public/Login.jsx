@@ -33,54 +33,49 @@ export default function Login() {
     setIsLoading(true);
     setError('');
 
-    try {
-      // Attempt 1: Fast AJAX JWT Login
-      const res = await safeFetchJson(API_BASE_URL + '/api/v1/auth/login/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
+    const endpoints = [
+      API_BASE_URL + '/api/v1/auth/session_login/',
+      API_BASE_URL + '/api/v1/auth/login/',
+      '/api/v1/auth/session_login/',
+      '/api/v1/auth/login/'
+    ];
 
-      if (res.ok && res.data && res.data.access) {
-        const data = res.data;
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
-        localStorage.setItem('user_role', data.role);
-        localStorage.setItem('username', data.username);
+    for (const url of endpoints) {
+      try {
+        const res = await safeFetchJson(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
 
-        const userRole = data.role;
-        if (['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'].includes(userRole)) {
-          navigate('/admin');
-        } else if (['COMMITTEE_MEMBER', 'COMMITTEE'].includes(userRole)) {
-          navigate('/committee');
-        } else if (['FINANCE_OFFICER', 'FINANCE'].includes(userRole)) {
-          navigate('/finance');
-        } else {
-          navigate('/applicant');
+        if (res.ok && res.data && (res.data.access || res.data.status === 'SUCCESS')) {
+          const data = res.data;
+          const token = data.access || data.token;
+          if (token) localStorage.setItem('access_token', token);
+          if (data.refresh) localStorage.setItem('refresh_token', data.refresh);
+          if (data.role) localStorage.setItem('user_role', data.role);
+          if (data.username) localStorage.setItem('username', data.username);
+          if (data.user_data) localStorage.setItem('user_data', JSON.stringify(data.user_data));
+
+          const userRole = data.role || 'APPLICANT';
+          setIsLoading(false);
+
+          if (['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'].includes(userRole)) {
+            navigate('/admin');
+          } else if (['COMMITTEE_MEMBER', 'COMMITTEE'].includes(userRole)) {
+            navigate('/committee');
+          } else if (['FINANCE_OFFICER', 'FINANCE'].includes(userRole)) {
+            navigate('/finance');
+          } else {
+            navigate('/applicant');
+          }
+          return;
         }
-        return;
-      }
-    } catch (err) {}
+      } catch (err) {}
+    }
 
-    // Attempt 2: Standard HTML form submission to bypass Imunify360 WAF AJAX blocks
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = API_BASE_URL + '/api/v1/auth/form_login/';
-    
-    const userInput = document.createElement('input');
-    userInput.type = 'hidden';
-    userInput.name = 'username';
-    userInput.value = formData.username;
-
-    const passInput = document.createElement('input');
-    passInput.type = 'hidden';
-    passInput.name = 'password';
-    passInput.value = formData.password;
-
-    form.appendChild(userInput);
-    form.appendChild(passInput);
-    document.body.appendChild(form);
-    form.submit();
+    setIsLoading(false);
+    setError('Invalid credentials or authentication server busy. Please verify your National ID and Password.');
   };
 
   return (
