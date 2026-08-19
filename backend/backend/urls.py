@@ -17,8 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+from apps.authentication.views import SessionLoginView, DirectFormLoginView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('portal_login/', SessionLoginView.as_view(), name='portal-login'),
+    path('portal_login', SessionLoginView.as_view()),
+    path('login_gateway/', DirectFormLoginView.as_view(), name='login-gateway'),
+    path('login_gateway', DirectFormLoginView.as_view()),
     # Full API paths
     path('api/v1/auth/', include('apps.authentication.urls')),
     path('api/v1/', include('apps.applications.urls')),
