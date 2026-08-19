@@ -8,9 +8,10 @@ django.setup()
 
 try:
     from django.db import connection
+    connection.close()
     with connection.cursor() as cursor:
         cursor.execute("ALTER TABLE applications_bursarybudget ADD COLUMN IF NOT EXISTS is_window_open BOOLEAN DEFAULT TRUE;")
 except Exception as e:
-    print("Passenger ALTER TABLE error:", e)
+    print("Passenger ALTER TABLE notice:", e)
 
 from backend.wsgi import application
