@@ -1,37 +1,16 @@
 {
+  "name": "Smart NG-CDF Bursary System - Kibwezi West",
   "short_name": "NG-CDF Bursary",
-  "name": "NG-CDF Kibwezi West Smart Bursary Management System",
-  "description": "Official Republic of Kenya NG-CDF Bursary Application, Verification, and Disbursement Portal",
+  "description": "Official Republic of Kenya NG-CDF Kibwezi West Bursary Application and Management System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F6B38",
   "icons": [
     {
-      "src": "/pwa-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/pwa-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/logo.png",
-      "sizes": "512x512",
+      "src": "/favicon.png",
+      "sizes": "192x192 512x512",
       "type": "image/png"
     }
-  ],
-  "start_url": "/",
-  "background_color": "#F4F7F5",
-  "theme_color": "#0F6B38",
-  "display": "standalone",
-  "orientation": "portrait-primary",
-  "scope": "/",
-  "categories": [
-    "education",
-    "government",
-    "finance"
-  ],
-  "lang": "en-US",
-  "dir": "ltr"
+  ]
 }
