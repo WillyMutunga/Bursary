@@ -34,9 +34,6 @@ export default function Login() {
     setError('');
 
     const endpoints = [
-      API_BASE_URL + '/portal_login/',
-      '/portal_login/',
-      API_BASE_URL + '/api/v1/auth/session_login/',
       API_BASE_URL + '/api/v1/auth/login/'
     ];
 
