@@ -69,70 +69,48 @@ export default function ApplicantDashboard() {
         const token = localStorage.getItem('access_token');
         if (!token) return window.location.href = '/';
 
-        // Fetch User with endpoint fallbacks
-        let userRes = null;
-        const userEndpoints = [
-          API_BASE_URL + '/api/v1/auth/me/',
-          '/v1/auth/me/',
-          '/auth/me/'
-        ];
-        for (const ep of userEndpoints) {
-          try {
-            const res = await fetch(ep, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (res.ok) {
-              userRes = res;
-              break;
-            }
-          } catch (e) {}
-        }
-
-        if (userRes && userRes.ok) {
-          const userData = await userRes.json();
-          setUser(userData);
-          setEditProfile({
+        // Fetch User profile directly
+        try {
+          const userRes = await fetch(API_BASE_URL + '/api/v1/auth/me/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setUser(userData);
+            setEditProfile({
               first_name: userData.first_name || '',
               last_name: userData.last_name || '',
               email: userData.email || '',
               phone_number: userData.phone_number || ''
+            });
+          }
+        } catch (e) {}
+
+        // Fetch Applications directly
+        try {
+          const appRes = await fetch(API_BASE_URL + '/api/v1/applications/', {
+            headers: { 'Authorization': `Bearer ${token}` }
           });
-        }
+          if (appRes && appRes.ok) {
+            const appData = await appRes.json();
+            setApplications(appData);
+            
+            let total = appData.length;
+            let awardedAmount = 0;
+            let pending = 0;
 
-        // Fetch Applications with endpoint fallbacks
-        let appRes = null;
-        const appEndpoints = [
-          API_BASE_URL + '/api/v1/applications/',
-          '/v1/applications/',
-          '/applications/'
-        ];
-        for (const ep of appEndpoints) {
-          try {
-            const res = await fetch(ep, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (res.ok) {
-              appRes = res;
-              break;
-            }
-          } catch (e) {}
-        }
-
-        if (appRes && appRes.ok) {
-          const appData = await appRes.json();
-          setApplications(appData);
-          
-          let total = appData.length;
-          let awardedAmount = 0;
-          let pending = 0;
-
-          appData.forEach(app => {
+            appData.forEach(app => {
               if (app.status === 'PAID' || app.status === 'APPROVED') {
-                  awardedAmount += parseFloat(app.awarded_amount || 0);
+                awardedAmount += parseFloat(app.awarded_amount || 0);
               }
               if (app.status === 'SUBMITTED' || app.status === 'COMMITTEE_REVIEW' || app.status === 'VERIFIED') {
-                  pending += 1;
+                pending += 1;
               }
-          });
+            });
 
-          setMetrics({ total, awardedAmount, pending });
-        }
+            setMetrics({ total, awardedAmount, pending });
+          }
+        } catch (e) {}
       } catch (err) {
         console.error("Failed to fetch dashboard data", err);
       }
