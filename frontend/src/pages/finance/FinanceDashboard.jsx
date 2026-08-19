@@ -59,15 +59,17 @@ export default function FinanceDashboard() {
   }, []);
 
   const fetchApplications = async (token) => {
+    try {
       const appRes = await fetch(API_BASE_URL + '/api/v1/applications/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (appRes.ok) {
+      if (appRes && appRes.ok) {
         const appData = await appRes.json();
         // Filter for APPROVED (ready for disbursement)
         const approvedApps = appData.filter(app => app.status === 'APPROVED');
         setApplications(approvedApps);
       }
+    } catch(e) {}
   };
 
   const handleLogout = () => {

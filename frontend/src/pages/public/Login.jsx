@@ -28,12 +28,41 @@ export default function Login() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Directly submit standard HTML form to bypass Imunify360 WAF AJAX blocks on all phones and laptops
+    try {
+      // Attempt 1: Fast AJAX JWT Login
+      const res = await safeFetchJson(API_BASE_URL + '/api/v1/auth/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (res.ok && res.data && res.data.access) {
+        const data = res.data;
+        localStorage.setItem('access_token', data.access);
+        localStorage.setItem('refresh_token', data.refresh);
+        localStorage.setItem('user_role', data.role);
+        localStorage.setItem('username', data.username);
+
+        const userRole = data.role;
+        if (['ADMINISTRATOR', 'SUPER_ADMINISTRATOR', 'ADMIN'].includes(userRole)) {
+          navigate('/admin');
+        } else if (['COMMITTEE_MEMBER', 'COMMITTEE'].includes(userRole)) {
+          navigate('/committee');
+        } else if (['FINANCE_OFFICER', 'FINANCE'].includes(userRole)) {
+          navigate('/finance');
+        } else {
+          navigate('/applicant');
+        }
+        return;
+      }
+    } catch (err) {}
+
+    // Attempt 2: Standard HTML form submission to bypass Imunify360 WAF AJAX blocks
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = API_BASE_URL + '/api/v1/auth/form_login/';

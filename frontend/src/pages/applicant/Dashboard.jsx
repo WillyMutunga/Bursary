@@ -114,7 +114,7 @@ export default function ApplicantDashboard() {
           } catch (e) {}
         }
 
-        if (appRes.ok) {
+        if (appRes && appRes.ok) {
           const appData = await appRes.json();
           setApplications(appData);
           

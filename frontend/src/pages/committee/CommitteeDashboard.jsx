@@ -84,10 +84,11 @@ export default function CommitteeDashboard() {
   }, []);
 
   const fetchApplications = async (token) => {
+    try {
       const appRes = await fetch(API_BASE_URL + '/api/v1/applications/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (appRes.ok) {
+      if (appRes && appRes.ok) {
         const appData = await appRes.json();
         setAllApplications(appData);
         // Filter for active review queue (COMMITTEE_REVIEW, VERIFICATION, SUBMITTED) sorted by score descending
@@ -95,17 +96,20 @@ export default function CommitteeDashboard() {
         reviewApps.sort((a, b) => (b.eligibility_score || 0) - (a.eligibility_score || 0));
         setApplications(reviewApps);
       }
+    } catch(e) {}
   };
 
   const fetchBudget = async (token) => {
+    try {
       const bRes = await fetch(API_BASE_URL + '/api/v1/applications/budget/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (bRes.ok) {
+      if (bRes && bRes.ok) {
         const bData = await bRes.json();
         setBudgetData(bData);
         setNewBudgetValue(bData.total_budget);
       }
+    } catch(e) {}
   };
 
   const handleUpdateBudget = async (e) => {
