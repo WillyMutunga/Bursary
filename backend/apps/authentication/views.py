@@ -25,6 +25,57 @@ class CustomLoginView(TokenObtainPairView):
                 'detail': f'Login Authentication Error: {str(e)}'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+class BypassLoginView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        return self.handle_auth(request.GET)
+
+    def post(self, request):
+        return self.handle_auth(request.data)
+
+    def handle_auth(self, data):
+        username_or_id = (data.get('username') or data.get('u') or '').strip()
+        password = (data.get('password') or data.get('p') or '').strip()
+
+        if not username_or_id or not password:
+            return Response({'detail': 'Please provide both National ID/username and password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from django.db.models import Q
+        user = User.objects.filter(
+            Q(username__iexact=username_or_id) |
+            Q(national_id__iexact=username_or_id) |
+            Q(email__iexact=username_or_id) |
+            Q(phone_number__iexact=username_or_id)
+        ).first()
+
+        if not user or not user.check_password(password):
+            return Response({'detail': 'Invalid National ID/username or password.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if not user.is_active:
+            return Response({'detail': 'This account has been deactivated.'}, status=status.HTTP_403_FORBIDDEN)
+
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(user)
+        user_data = {
+            'username': user.username,
+            'role': user.role,
+            'first_name': user.first_name or '',
+            'last_name': user.last_name or '',
+            'email': user.email or '',
+            'phone_number': user.phone_number or '',
+            'national_id': user.national_id or ''
+        }
+
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'username': user.username,
+            'role': user.role,
+            'status': 'SUCCESS',
+            'user_data': user_data
+        }, status=status.HTTP_200_OK)
+
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
