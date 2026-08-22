@@ -1,0 +1,27 @@
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+.pnpm-debug.log*
+yarn-error.log*
+npm-debug.log*
+
+# Laravel / Backend
+backend/vendor/
+backend/node_modules/
+backend/storage/logs/*.log
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/bootstrap/cache/*.php
+backend/.env
+.env
+.env.backup
+.env.production
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+scratch/
+scratch_verify.js
