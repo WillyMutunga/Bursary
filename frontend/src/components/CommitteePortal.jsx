@@ -32,6 +32,7 @@ export default function CommitteePortal({
   const [decisionNotes, setDecisionNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState({ isOpen: false, doc: null, studentName: '' });
 
   const [filterStage, setFilterStage] = useState('all');
   const [filterWard, setFilterWard] = useState('all');

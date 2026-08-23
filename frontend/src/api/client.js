@@ -23,8 +23,19 @@ async function request(endpoint, options = {}) {
 
   try {
     const res = await fetch(url, config);
-    const data = await res.json();
-    return data;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return await res.json();
+    }
+    const text = await res.text();
+    if (!res.ok) {
+      return { success: false, message: text || `HTTP ${res.status}` };
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { success: true, data: text };
+    }
   } catch (error) {
     console.warn(`API call to ${endpoint} failed:`, error.message);
     return { success: false, error: error.message };
