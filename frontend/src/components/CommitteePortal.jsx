@@ -129,6 +129,22 @@ export default function CommitteePortal({
     }
   };
 
+  const exportNationalBoardSchedule = () => {
+    const headers = 'Application No,Applicant Name,National ID,Ward,Institution,Admission No,Course,Fee Balance,Awarded Amount,Stage\n';
+    const rows = applications
+      .map(
+        (a) =>
+          `"${a.application_no}","${a.full_name}","${a.national_id}","${a.ward?.name || 'N/A'}","${a.institution?.name || 'N/A'}","${a.admission_no}","${a.course_name || 'N/A'}",${a.fee_balance || 0},${a.approved_amount || a.recommended_amount || 0},"${a.stage}"`
+      )
+      .join('\n');
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `NGCDF-National-Board-Beneficiary-Schedule-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  };
+
   const filteredApps = applications.filter((a) => {
     const matchesSearch =
       (a.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
