@@ -30,13 +30,46 @@ export default function ApplicantPortal({
     provider_reference: 'IPRS-TXN-99882144',
   });
 
-  // Find the live database application for the currently logged-in user
-  const userApp = applications.find(
-    (a) =>
-      (currentUser?.national_id && a.national_id === currentUser.national_id) ||
-      (currentUser?.id && a.user_id === currentUser.id) ||
-      (currentUser?.name && a.full_name?.toLowerCase() === currentUser.name.toLowerCase())
-  ) || null;
+  // Resolve application from props, local storage or state
+  const resolveUserApp = () => {
+    const found = applications.find(
+      (a) =>
+        (currentUser?.national_id && String(a.national_id) === String(currentUser.national_id)) ||
+        (currentUser?.id && a.user_id === currentUser.id) ||
+        (currentUser?.name && a.full_name?.toLowerCase() === currentUser.name.toLowerCase())
+    );
+    if (found) return found;
+
+    const localKey = `ngcdf_app_${currentUser?.national_id || currentUser?.id || 'guest'}`;
+    const cached = localStorage.getItem(localKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return null;
+  };
+
+  const [myApp, setMyApp] = useState(resolveUserApp);
+
+  const loadMyApplication = async () => {
+    try {
+      const res = await api.getMyApplications(currentUser?.id, currentUser?.national_id);
+      if (res && res.success && res.data?.length > 0) {
+        setMyApp(res.data[0]);
+        const localKey = `ngcdf_app_${currentUser?.national_id || currentUser?.id || 'guest'}`;
+        localStorage.setItem(localKey, JSON.stringify(res.data[0]));
+      }
+    } catch (e) {
+      console.warn('Could not load applicant application from API', e);
+    }
+  };
+
+  useEffect(() => {
+    const current = resolveUserApp();
+    if (current) setMyApp(current);
+    loadMyApplication();
+  }, [currentUser, applications]);
 
   const [formData, setFormData] = useState({
     // Step 1: Student & Academic Details
@@ -215,15 +248,45 @@ export default function ApplicantPortal({
 
   const handleWizardSubmit = async (e) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      user_id: currentUser?.id,
+      national_id: formData.national_id || currentUser?.national_id || '',
+      full_name: formData.full_name || currentUser?.name || '',
+      phone: formData.phone || currentUser?.phone || '',
+      email: formData.email || currentUser?.email || '',
+    };
     try {
-      const res = await api.submitWizard(formData);
-      if (res && res.success) {
-        onSubmitNewApplication(res.data);
-      } else {
-        onSubmitNewApplication(formData);
+      const res = await api.submitWizard(payload);
+      const savedApp = (res && res.success && res.data) ? res.data : {
+        ...payload,
+        id: Date.now(),
+        application_no: 'CDF/BURS/2026/' + Math.floor(100000 + Math.random() * 900000),
+        stage: 'under_verification',
+        submitted_at: new Date().toISOString(),
+      };
+
+      setMyApp(savedApp);
+      const localKey = `ngcdf_app_${currentUser?.national_id || currentUser?.id || 'guest'}`;
+      localStorage.setItem(localKey, JSON.stringify(savedApp));
+
+      if (onSubmitNewApplication) {
+        onSubmitNewApplication(savedApp);
       }
     } catch (e) {
-      onSubmitNewApplication(formData);
+      const fallbackApp = {
+        ...payload,
+        id: Date.now(),
+        application_no: 'CDF/BURS/2026/' + Math.floor(100000 + Math.random() * 900000),
+        stage: 'under_verification',
+        submitted_at: new Date().toISOString(),
+      };
+      setMyApp(fallbackApp);
+      const localKey = `ngcdf_app_${currentUser?.national_id || currentUser?.id || 'guest'}`;
+      localStorage.setItem(localKey, JSON.stringify(fallbackApp));
+      if (onSubmitNewApplication) {
+        onSubmitNewApplication(fallbackApp);
+      }
     }
     setViewMode('dashboard');
   };
@@ -236,7 +299,7 @@ export default function ApplicantPortal({
   ];
 
   const loggedInName = currentUser?.name || formData.full_name || 'Applicant / Student';
-  const displayApp = userApp;
+  const displayApp = myApp || resolveUserApp();
 
   // Determine realistic status & progress
   const isApproved = displayApp && (displayApp.stage === 'approved' || displayApp.stage === 'paid' || displayApp.stage === 'awarded');

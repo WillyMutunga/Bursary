@@ -60,7 +60,8 @@ export const api = {
   getDemoUsers: () => request('/auth/demo-users'),
 
   // Applicant
-  getMyApplications: (userId) => request(`/applicant/my-applications?user_id=${userId || 1}`),
+  getMyApplications: (userId, nationalId) =>
+    request(`/applicant/my-applications?user_id=${userId || ''}&national_id=${encodeURIComponent(nationalId || '')}`),
   getApplicationDetails: (id) => request(`/applicant/applications/${id}`),
   verifyNationalId: (nationalId, fullName) =>
     request('/applicant/verify-id', { method: 'POST', body: { national_id: nationalId, full_name: fullName } }),

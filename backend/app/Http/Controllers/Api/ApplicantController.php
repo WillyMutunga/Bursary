@@ -37,12 +37,24 @@ class ApplicantController extends Controller
 
     public function myApplications(Request $request)
     {
-        $userId = $request->user() ? $request->user()->id : $request->query('user_id', 1);
+        $user = $request->user();
+        $userId = $user ? $user->id : $request->query('user_id');
+        $nationalId = $request->query('national_id') ?: ($user ? $user->national_id : null);
 
-        $applications = Application::with(['cycle', 'ward', 'institution', 'documents', 'identityVerifications'])
-            ->where('user_id', $userId)
-            ->latest()
-            ->get();
+        $query = Application::with(['cycle', 'ward', 'institution', 'documents', 'identityVerifications']);
+
+        if ($userId || $nationalId) {
+            $query->where(function ($q) use ($userId, $nationalId) {
+                if ($userId) {
+                    $q->where('user_id', $userId);
+                }
+                if ($nationalId) {
+                    $q->orWhere('national_id', $nationalId);
+                }
+            });
+        }
+
+        $applications = $query->latest()->get();
 
         return response()->json([
             'success' => true,
