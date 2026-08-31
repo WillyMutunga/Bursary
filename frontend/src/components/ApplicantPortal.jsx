@@ -252,18 +252,48 @@ export default function ApplicantPortal({
     }
   };
 
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleWizardSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    const targetId = (formData.national_id || currentUser?.national_id || '').trim();
+
+    // Check if ID has already been used in current applications list
+    const existingLocal = applications?.find(
+      (app) => app.national_id && app.national_id.trim().toLowerCase() === targetId.toLowerCase()
+    );
+    if (existingLocal) {
+      setSubmitError(
+        `The ID Number '${targetId}' has already been used to apply for a bursary (Application No: ${existingLocal.application_no}). Each applicant ID is strictly unique and cannot be used more than once.`
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
     const payload = {
       ...formData,
       user_id: currentUser?.id,
-      national_id: formData.national_id || currentUser?.national_id || '',
+      national_id: targetId,
       full_name: formData.full_name || currentUser?.name || '',
       phone: formData.phone || currentUser?.phone || '',
       email: formData.email || currentUser?.email || '',
     };
+
     try {
       const res = await api.submitWizard(payload);
+      if (res && res.success === false) {
+        setSubmitError(
+          res.message ||
+          `The ID Number '${targetId}' has already been used to submit a bursary application. Each student ID can only apply once.`
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       const savedApp = (res && res.success && res.data) ? res.data : {
         ...payload,
         id: Date.now(),
@@ -279,22 +309,12 @@ export default function ApplicantPortal({
       if (onSubmitNewApplication) {
         onSubmitNewApplication(savedApp);
       }
+      setViewMode('dashboard');
     } catch (e) {
-      const fallbackApp = {
-        ...payload,
-        id: Date.now(),
-        application_no: 'CDF/BURS/2026/' + Math.floor(100000 + Math.random() * 900000),
-        stage: 'under_verification',
-        submitted_at: new Date().toISOString(),
-      };
-      setMyApp(fallbackApp);
-      const localKey = `ngcdf_app_${currentUser?.national_id || currentUser?.id || 'guest'}`;
-      localStorage.setItem(localKey, JSON.stringify(fallbackApp));
-      if (onSubmitNewApplication) {
-        onSubmitNewApplication(fallbackApp);
-      }
+      setSubmitError(e.message || 'Failed to submit application. Please check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-    setViewMode('dashboard');
   };
 
   const wizardSteps = [
@@ -1502,12 +1522,24 @@ export default function ApplicantPortal({
                   </label>
                 </div>
 
+                {submitError && (
+                  <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl flex items-start gap-3 text-rose-800 animate-fade-in text-left">
+                    <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
+                    <div>
+                      <p className="font-black text-xs uppercase tracking-wider text-rose-900">Application Blocked (Duplicate ID)</p>
+                      <p className="text-xs mt-0.5 font-medium leading-relaxed">{submitError}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="text-center pt-2">
                   <button
                     type="submit"
-                    className="px-10 py-4 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-900/30 transition-all hover:scale-105 inline-flex items-center gap-2"
+                    disabled={isSubmitting}
+                    className="px-10 py-4 bg-[#0B6B3A] hover:bg-[#084e2a] disabled:opacity-50 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-900/30 transition-all hover:scale-105 inline-flex items-center gap-2"
                   >
-                    <Send className="w-4 h-4 text-[#D4A72C]" /> TRANSMIT BURSARY APPLICATION
+                    <Send className="w-4 h-4 text-[#D4A72C]" />
+                    {isSubmitting ? 'TRANSMITTING...' : 'TRANSMIT BURSARY APPLICATION'}
                   </button>
                 </div>
               </div>

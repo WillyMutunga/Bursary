@@ -153,7 +153,36 @@ class ApplicantController extends Controller
         $activeCycle = BursaryCycle::where('is_active', true)->first();
         $cycleId = $activeCycle ? $activeCycle->id : 1;
 
-        // 1. Pluggable ID verification
+        // 1. Hard Stop: National ID / Birth Cert No must be strictly unique
+        $cleanNationalId = trim($validated['national_id']);
+        $existingIdApp = Application::where('national_id', $cleanNationalId)
+            ->when($cycleId, fn($q) => $q->where('cycle_id', $cycleId))
+            ->first();
+
+        if ($existingIdApp) {
+            return response()->json([
+                'success' => false,
+                'message' => "The ID Number '{$cleanNationalId}' has already been used to apply for a bursary under Application No: {$existingIdApp->application_no}. Each applicant ID is strictly unique and cannot be used more than once.",
+                'existing_application' => $existingIdApp,
+            ], 422);
+        }
+
+        // Check if user already submitted
+        if ($userId) {
+            $existingUserApp = Application::where('user_id', $userId)
+                ->when($cycleId, fn($q) => $q->where('cycle_id', $cycleId))
+                ->first();
+
+            if ($existingUserApp) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "You have already submitted an active bursary application (No: {$existingUserApp->application_no}). Multiple applications are not permitted.",
+                    'existing_application' => $existingUserApp,
+                ], 422);
+            }
+        }
+
+        // 2. Pluggable ID verification
         $idVerification = $this->idService->verify($validated['national_id'], $validated['full_name']);
 
         // 2. Duplicate Detection
