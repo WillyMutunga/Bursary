@@ -15,9 +15,11 @@ export default function AuthScreen({
 }) {
   const [mode, setMode] = useState(initialMode); // 'login', 'register', 'otp'
   const [showPassword, setShowPassword] = useState(false);
+  const [loginRoleType, setLoginRoleType] = useState('applicant'); // 'applicant' or 'staff'
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
+    id_type: 'national_id', // 'national_id', 'birth_certificate', 'nemis_upi'
     national_id: '',
     phone: '',
     email: '',
@@ -267,16 +269,32 @@ export default function AuthScreen({
           {mode === 'login' && (
             <div className="space-y-5 my-auto">
               <div>
-                <h3 className="text-2xl font-black text-[#0F172A]">Sign In</h3>
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="text-2xl font-black text-[#0F172A]">
+                    {loginRoleType === 'applicant' ? 'Applicant Sign In' : 'Staff & Officer Sign In'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginRoleType(loginRoleType === 'applicant' ? 'staff' : 'applicant');
+                      setErrorMessage('');
+                    }}
+                    className="text-[11px] font-bold text-[#0B6B3A] hover:underline"
+                  >
+                    {loginRoleType === 'applicant' ? '👔 Staff / Admin Login →' : '🎓 Student Login →'}
+                  </button>
+                </div>
                 <p className="text-slate-500 text-xs mt-0.5">
-                  Enter your Username, National ID, or Official Email and password.
+                  {loginRoleType === 'applicant'
+                    ? 'Applicants must sign in using their National ID or Birth Certificate Number only.'
+                    : 'Constituency officers, committee members, and admins sign in with your Staff Username or Email.'}
                 </p>
               </div>
 
               {errorMessage && (
                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{errorMessage}</span>
+                  <span className="font-bold">{errorMessage}</span>
                 </div>
               )}
 
@@ -284,19 +302,30 @@ export default function AuthScreen({
                 {/* Identifier Input */}
                 <div>
                   <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1.5">
-                    Username / National ID / Official Email
+                    {loginRoleType === 'applicant'
+                      ? 'NATIONAL ID / BIRTH CERTIFICATE ENTRY NO / NEMIS UPI'
+                      : 'OFFICIAL USERNAME / EMAIL ADDRESS'}
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
-                      placeholder="e.g. Willy or 41354126 or finance@ngcdf.go.ke"
+                      placeholder={
+                        loginRoleType === 'applicant'
+                          ? 'e.g. 38291045 or BC-8492014 or H7K2M9'
+                          : 'e.g. Willy or admin@ngcdf.go.ke'
+                      }
                       value={formData.national_id}
                       onChange={(e) => setFormData({ ...formData, national_id: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0B6B3A] focus:border-transparent outline-none transition-all"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0B6B3A] focus:border-transparent outline-none transition-all font-mono"
                       required
                     />
                   </div>
+                  {loginRoleType === 'applicant' && (
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      💡 <strong>Students without National IDs:</strong> Enter your official Kenyan Birth Certificate Entry Number or NEMIS UPI.
+                    </p>
+                  )}
                 </div>
 
                 {/* Password Input */}
@@ -330,9 +359,9 @@ export default function AuthScreen({
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-900/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+                  className="w-full py-3.5 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-900/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
                 >
-                  {isLoading ? 'Authenticating Credentials...' : 'Sign In to Portal'}
+                  {isLoading ? 'Authenticating...' : loginRoleType === 'applicant' ? 'Sign In as Student' : 'Sign In as Staff'}
                   <ArrowRight className="w-4 h-4 text-[#D4A72C]" />
                 </button>
               </form>
@@ -399,15 +428,68 @@ export default function AuthScreen({
                   </div>
                 </div>
 
-                {/* National ID & Phone */}
+                {/* Identification Type Selector (National ID vs Birth Certificate vs NEMIS UPI) */}
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1.5">
+                    APPLICANT IDENTIFICATION TYPE
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'national_id', label: '🪪 National ID', sub: 'Adults (18+)' },
+                      { id: 'birth_certificate', label: '📜 Birth Certificate', sub: 'Minors / Under 18' },
+                      { id: 'nemis_upi', label: '🎓 NEMIS UPI', sub: 'School Identifier' },
+                    ].map((t) => {
+                      const isSelected = (formData.id_type || 'national_id') === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, id_type: t.id })}
+                          className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-50 border-[#0B6B3A] ring-2 ring-[#0B6B3A]/20 text-[#0B6B3A] font-black shadow-sm'
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className="block text-[11px] leading-tight font-bold">{t.label}</span>
+                          <span className="block text-[9px] text-slate-400 font-normal">{t.sub}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {formData.id_type === 'birth_certificate' && (
+                    <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-snug">
+                      💡 <strong>Notice for Secondary Students / Minors:</strong> You do NOT need a National ID card to apply. Enter the <strong>Entry Number</strong> found on your Kenyan Birth Certificate. You will use this number as your username to sign in!
+                    </div>
+                  )}
+                  {formData.id_type === 'nemis_upi' && (
+                    <div className="mt-2 p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-snug">
+                      💡 <strong>Notice:</strong> Enter the official Ministry of Education NEMIS UPI code found on your student calling letter or fee statement.
+                    </div>
+                  )}
+                </div>
+
+                {/* National ID / Birth Certificate & Phone */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1">NATIONAL ID NUMBER</label>
+                    <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1">
+                      {formData.id_type === 'birth_certificate'
+                        ? 'BIRTH CERTIFICATE ENTRY NO'
+                        : formData.id_type === 'nemis_upi'
+                        ? 'NEMIS UPI NUMBER'
+                        : 'NATIONAL ID NUMBER'}
+                    </label>
                     <div className="relative">
                       <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
                       <input
                         type="text"
-                        placeholder="e.g. 38291045"
+                        placeholder={
+                          formData.id_type === 'birth_certificate'
+                            ? 'e.g. BC-1092834 or 7294012'
+                            : formData.id_type === 'nemis_upi'
+                            ? 'e.g. H7K2M9'
+                            : 'e.g. 38291045'
+                        }
                         value={formData.national_id}
                         onChange={(e) => setFormData({ ...formData, national_id: e.target.value })}
                         className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"

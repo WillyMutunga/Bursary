@@ -847,11 +847,13 @@ export default function ApplicantPortal({
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">National ID / Birth Cert No</label>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      National ID / Birth Certificate No / NEMIS UPI
+                    </label>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="e.g. 41354126"
+                        placeholder="e.g. 38291045 or BC-849201 or H7K2M9"
                         value={formData.national_id}
                         onChange={(e) => setFormData({ ...formData, national_id: e.target.value })}
                         className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"

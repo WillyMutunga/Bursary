@@ -31,22 +31,33 @@ class AuthController extends Controller
         $cleanPhone = preg_replace('/[^0-9]/', '', $identifier);
 
         $user = User::where(function ($query) use ($identifier, $cleanPhone) {
-            $query->where('email', 'ILIKE', $identifier)
-                ->orWhere('name', 'ILIKE', $identifier)
-                ->orWhere('national_id', $identifier)
-                ->orWhere('phone', $identifier);
+            $query->where('national_id', 'ILIKE', $identifier)
+                ->orWhere('email', 'ILIKE', $identifier)
+                ->orWhere('name', 'ILIKE', $identifier);
 
             if (!empty($cleanPhone) && strlen($cleanPhone) >= 6) {
-                $query->orWhere('national_id', $cleanPhone)
-                    ->orWhere('phone', 'LIKE', "%{$cleanPhone}%");
+                $query->orWhere('national_id', $cleanPhone);
             }
         })->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials provided. Please verify your National ID / Email and Password.',
+                'message' => 'Invalid credentials provided. Please verify your National ID / Birth Certificate Number and Password.',
             ], 401);
+        }
+
+        // Strict Applicant Enforcement: Applicants must log in ONLY with their ID / Birth Cert No, not name or email
+        if ($user->role === 'applicant') {
+            $matchedById = (strcasecmp(trim($user->national_id), $identifier) === 0)
+                || (!empty($cleanPhone) && strcasecmp(trim($user->national_id), $cleanPhone) === 0);
+
+            if (!$matchedById) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Applicants must log in using their National ID or Birth Certificate Number only (not name or email).',
+                ], 403);
+            }
         }
 
         $token = $user->createToken('bursary_auth_token')->plainTextToken;
