@@ -127,7 +127,28 @@ class ApplicantController extends Controller
             'is_disabled' => 'nullable|boolean',
             'has_chronic_illness' => 'nullable|boolean',
             'special_circumstances' => 'nullable|string',
+            'father_name' => 'nullable|string',
+            'father_id' => 'nullable|string',
+            'father_phone' => 'nullable|string',
+            'father_occupation' => 'nullable|string',
+            'mother_name' => 'nullable|string',
+            'mother_id' => 'nullable|string',
+            'mother_phone' => 'nullable|string',
+            'mother_occupation' => 'nullable|string',
+            'deceased_parent_name' => 'nullable|string',
+            'deceased_parent_death_year' => 'nullable|string',
+            'deceased_father_name' => 'nullable|string',
+            'deceased_father_year' => 'nullable|string',
+            'deceased_mother_name' => 'nullable|string',
+            'deceased_mother_year' => 'nullable|string',
+            'guardian_relationship' => 'nullable|string',
         ]);
+
+        if ($request->filled('father_name') && $request->filled('mother_name')) {
+            $validated['guardian_name'] = trim($request->input('father_name') . ' & ' . $request->input('mother_name'));
+            $validated['guardian_id'] = $request->input('father_id') ?: $request->input('mother_id');
+            $validated['guardian_phone'] = $request->input('father_phone') ?: $request->input('mother_phone');
+        }
 
         $instName = $request->input('institution_name') ?: $request->input('institution');
         if ($instName) {

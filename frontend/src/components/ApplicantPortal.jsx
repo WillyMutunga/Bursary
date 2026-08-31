@@ -100,7 +100,25 @@ export default function ApplicantPortal({
     fee_balance: '',
 
     // Step 2: Family & Vulnerability
-    parent_status: 'partial_orphan',
+    parent_status: 'both_alive',
+    father_name: '',
+    father_id: '',
+    father_phone: '',
+    father_occupation: '',
+    mother_name: '',
+    mother_id: '',
+    mother_phone: '',
+    mother_occupation: '',
+    single_parent_type: 'Mother',
+    single_parent_reason: 'Never Married',
+    deceased_parent: 'Father',
+    deceased_parent_name: '',
+    deceased_parent_death_year: '',
+    deceased_father_name: '',
+    deceased_father_year: '',
+    deceased_mother_name: '',
+    deceased_mother_year: '',
+    guardian_relationship: 'Parent',
     guardian_name: '',
     guardian_id: '',
     guardian_phone: '',
@@ -275,8 +293,28 @@ export default function ApplicantPortal({
       return;
     }
 
+    const guardianName = formData.parent_status === 'both_alive'
+      ? `${formData.father_name || ''} & ${formData.mother_name || ''}`.trim()
+      : formData.guardian_name;
+
+    const guardianId = formData.parent_status === 'both_alive'
+      ? (formData.father_id || formData.mother_id || '')
+      : formData.guardian_id;
+
+    const guardianPhone = formData.parent_status === 'both_alive'
+      ? (formData.father_phone || formData.mother_phone || '')
+      : formData.guardian_phone;
+
+    const guardianOccupation = formData.parent_status === 'both_alive'
+      ? `Father: ${formData.father_occupation || 'N/A'} | Mother: ${formData.mother_occupation || 'N/A'}`
+      : formData.guardian_occupation;
+
     const payload = {
       ...formData,
+      guardian_name: guardianName || formData.guardian_name || 'N/A',
+      guardian_id: guardianId || formData.guardian_id || '',
+      guardian_phone: guardianPhone || formData.guardian_phone || '',
+      guardian_occupation: guardianOccupation || formData.guardian_occupation || '',
       user_id: currentUser?.id,
       national_id: targetId,
       full_name: formData.full_name || currentUser?.name || '',
@@ -1154,76 +1192,481 @@ export default function ApplicantPortal({
                   <p className="text-slate-500 text-[11px]">Socioeconomic and parental background for fair scoring.</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Parental Status</label>
-                    <select
-                      value={formData.parent_status}
-                      onChange={(e) => setFormData({ ...formData, parent_status: e.target.value })}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                    >
-                      <option value="both_alive">Both Parents Alive</option>
-                      <option value="single_parent">Single Parent Household</option>
-                      <option value="partial_orphan">Partial Orphan (One Parent Deceased)</option>
-                      <option value="total_orphan">Total Orphan (Both Parents Deceased)</option>
-                    </select>
-                  </div>
+                {/* Parental Status Selector Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-2">
+                  {[
+                    { id: 'both_alive', label: 'Both Parents Alive', sub: 'Father & Mother Both Living', icon: '👨‍👩‍👧' },
+                    { id: 'single_parent', label: 'Single Parent', sub: 'Sole Parent Household', icon: '👤' },
+                    { id: 'partial_orphan', label: 'Partial Orphan', sub: 'One Parent Deceased', icon: '🥀' },
+                    { id: 'total_orphan', label: 'Total Orphan', sub: 'Both Parents Deceased', icon: '🕊️' },
+                  ].map((status) => {
+                    const isSelected = formData.parent_status === status.id;
+                    return (
+                      <button
+                        key={status.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, parent_status: status.id })}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          isSelected
+                            ? 'bg-emerald-50 border-[#0B6B3A] ring-2 ring-[#0B6B3A]/20 shadow-sm'
+                            : 'bg-white border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="text-xl mb-1">{status.icon}</div>
+                        <div>
+                          <p className={`font-bold text-xs ${isSelected ? 'text-[#0B6B3A]' : 'text-slate-800'}`}>{status.label}</p>
+                          <p className="text-[10px] text-slate-500">{status.sub}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Parent / Guardian Full Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Grace Mutunga"
-                      value={formData.guardian_name}
-                      onChange={(e) => setFormData({ ...formData, guardian_name: e.target.value })}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                      required
-                    />
-                  </div>
+                {/* ADAPTIVE FORM 1: BOTH PARENTS ALIVE */}
+                {formData.parent_status === 'both_alive' && (
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Father's Particulars Card */}
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <h5 className="font-black text-xs text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
+                        <span>👨</span> Father's Particulars
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Father's Full Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Peter Mutunga"
+                            value={formData.father_name}
+                            onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Father's National ID Number</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 12483940"
+                            value={formData.father_id}
+                            onChange={(e) => setFormData({ ...formData, father_id: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Father's Phone Number</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 0722111222"
+                            value={formData.father_phone}
+                            onChange={(e) => setFormData({ ...formData, father_phone: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Father's Occupation / Livelihood</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Smallholder Farmer / Casual Worker"
+                            value={formData.father_occupation}
+                            onChange={(e) => setFormData({ ...formData, father_occupation: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Guardian Phone Number</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 0722111222"
-                      value={formData.guardian_phone}
-                      onChange={(e) => setFormData({ ...formData, guardian_phone: e.target.value })}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                      required
-                    />
+                    {/* Mother's Particulars Card */}
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <h5 className="font-black text-xs text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
+                        <span>👩</span> Mother's Particulars
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Mother's Full Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Grace Mutunga"
+                            value={formData.mother_name}
+                            onChange={(e) => setFormData({ ...formData, mother_name: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Mother's National ID Number</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 19827364"
+                            value={formData.mother_id}
+                            onChange={(e) => setFormData({ ...formData, mother_id: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Mother's Phone Number</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 0711333444"
+                            value={formData.mother_phone}
+                            onChange={(e) => setFormData({ ...formData, mother_phone: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Mother's Occupation / Livelihood</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Small Scale Trader / Peasant Farmer"
+                            value={formData.mother_occupation}
+                            onChange={(e) => setFormData({ ...formData, mother_occupation: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Guardian Occupation</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Small Scale Farmer"
-                      value={formData.guardian_occupation}
-                      onChange={(e) => setFormData({ ...formData, guardian_occupation: e.target.value })}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                    />
+                {/* ADAPTIVE FORM 2: SINGLE PARENT */}
+                {formData.parent_status === 'single_parent' && (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 animate-fade-in">
+                    <h5 className="font-black text-xs text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
+                      <span>👤</span> Single Parent Particulars
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Parent Heading Household</label>
+                        <select
+                          value={formData.single_parent_type}
+                          onChange={(e) => setFormData({ ...formData, single_parent_type: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                        >
+                          <option value="Mother">Mother</option>
+                          <option value="Father">Father</option>
+                        </select>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block font-bold text-slate-700 mb-1">Parent's Full Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Grace Mutunga"
+                          value={formData.guardian_name}
+                          onChange={(e) => setFormData({ ...formData, guardian_name: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Parent's National ID</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 19827364"
+                          value={formData.guardian_id}
+                          onChange={(e) => setFormData({ ...formData, guardian_id: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Parent's Phone Number</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 0722111222"
+                          value={formData.guardian_phone}
+                          onChange={(e) => setFormData({ ...formData, guardian_phone: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">Marital / Household Status</label>
+                        <select
+                          value={formData.single_parent_reason}
+                          onChange={(e) => setFormData({ ...formData, single_parent_reason: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                        >
+                          <option value="Never Married">Never Married / Solo Parent</option>
+                          <option value="Divorced / Separated">Divorced / Separated</option>
+                          <option value="Abandoned / Absent">Abandoned / Absent Second Parent</option>
+                        </select>
+                      </div>
+                      <div className="sm:col-span-3">
+                        <label className="block font-bold text-slate-700 mb-1">Parent's Occupation / Source of Livelihood</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Subsistence Farming / Casual Worker / Small Trader"
+                          value={formData.guardian_occupation}
+                          onChange={(e) => setFormData({ ...formData, guardian_occupation: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                        />
+                      </div>
+                    </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Estimated Monthly Income (KSh)</label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 8500"
-                      value={formData.guardian_monthly_income}
-                      onChange={(e) => setFormData({ ...formData, guardian_monthly_income: e.target.value ? Number(e.target.value) : '' })}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                    />
+                {/* ADAPTIVE FORM 3: PARTIAL ORPHAN (ONE PARENT DECEASED) */}
+                {formData.parent_status === 'partial_orphan' && (
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Late Parent Information */}
+                    <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 space-y-3">
+                      <h5 className="font-black text-xs text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>🥀</span> Deceased Parent Record
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Deceased Parent</label>
+                          <select
+                            value={formData.deceased_parent}
+                            onChange={(e) => setFormData({ ...formData, deceased_parent: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          >
+                            <option value="Father">Late Father Deceased</option>
+                            <option value="Mother">Late Mother Deceased</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Name of Deceased Parent</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Late Francis Mutunga"
+                            value={formData.deceased_parent_name}
+                            onChange={(e) => setFormData({ ...formData, deceased_parent_name: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Year of Demise</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 2019"
+                            value={formData.deceased_parent_death_year}
+                            onChange={(e) => setFormData({ ...formData, deceased_parent_death_year: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Surviving Parent Information */}
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <h5 className="font-black text-xs text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
+                        <span>🛡️</span> Surviving Parent / Guardian Particulars
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Surviving Parent's Full Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Grace Mutunga"
+                            value={formData.guardian_name}
+                            onChange={(e) => setFormData({ ...formData, guardian_name: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Surviving Parent's National ID</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 19827364"
+                            value={formData.guardian_id}
+                            onChange={(e) => setFormData({ ...formData, guardian_id: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Surviving Parent's Phone</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 0722111222"
+                            value={formData.guardian_phone}
+                            onChange={(e) => setFormData({ ...formData, guardian_phone: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Occupation / Source of Livelihood</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Subsistence Farmer"
+                            value={formData.guardian_occupation}
+                            onChange={(e) => setFormData({ ...formData, guardian_occupation: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Total Family Size</label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 5"
-                      value={formData.family_size}
-                      onChange={(e) => setFormData({ ...formData, family_size: e.target.value ? Number(e.target.value) : '' })}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                    />
+                {/* ADAPTIVE FORM 4: TOTAL ORPHAN (BOTH PARENTS DECEASED) */}
+                {formData.parent_status === 'total_orphan' && (
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Late Parents Record */}
+                    <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-200 space-y-3">
+                      <h5 className="font-black text-xs text-rose-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>🕊️</span> Late Parents Information (Both Deceased)
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Late Father's Full Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Late Francis Mutunga"
+                            value={formData.deceased_father_name}
+                            onChange={(e) => setFormData({ ...formData, deceased_father_name: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Father's Year of Demise</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 2018"
+                            value={formData.deceased_father_year}
+                            onChange={(e) => setFormData({ ...formData, deceased_father_year: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Late Mother's Full Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Late Elizabeth Mutunga"
+                            value={formData.deceased_mother_name}
+                            onChange={(e) => setFormData({ ...formData, deceased_mother_name: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Mother's Year of Demise</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 2021"
+                            value={formData.deceased_mother_year}
+                            onChange={(e) => setFormData({ ...formData, deceased_mother_year: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Appointed Legal Guardian */}
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <h5 className="font-black text-xs text-[#0F172A] uppercase tracking-wider flex items-center gap-1.5">
+                        <span>🤝</span> Appointed Legal Guardian Particulars
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="sm:col-span-2">
+                          <label className="block font-bold text-slate-700 mb-1">Guardian's Full Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Jonathan Musyoka"
+                            value={formData.guardian_name}
+                            onChange={(e) => setFormData({ ...formData, guardian_name: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Relationship to Student</label>
+                          <select
+                            value={formData.guardian_relationship}
+                            onChange={(e) => setFormData({ ...formData, guardian_relationship: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          >
+                            <option value="Grandparent">Grandparent</option>
+                            <option value="Uncle / Aunt">Uncle / Aunt</option>
+                            <option value="Elder Sibling">Elder Sibling</option>
+                            <option value="Foster Parent">Foster Parent / Well-wisher</option>
+                            <option value="Institutional Sponsor">Institutional / Children Home</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Guardian's National ID</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 14283719"
+                            value={formData.guardian_id}
+                            onChange={(e) => setFormData({ ...formData, guardian_id: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Guardian's Phone</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 0722334455"
+                            value={formData.guardian_phone}
+                            onChange={(e) => setFormData({ ...formData, guardian_phone: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Guardian's Occupation</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Small Scale Farming"
+                            value={formData.guardian_occupation}
+                            onChange={(e) => setFormData({ ...formData, guardian_occupation: e.target.value })}
+                            className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* COMMON HOUSEHOLD FINANCIALS & SIBLINGS */}
+                <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-200">
+                  <h5 className="font-black text-xs text-[#0B6B3A] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <span>📊</span> Household Size & Financial Burden
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Estimated Monthly Income (KSh)</label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 8500"
+                        value={formData.guardian_monthly_income}
+                        onChange={(e) => setFormData({ ...formData, guardian_monthly_income: e.target.value ? Number(e.target.value) : '' })}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Total Family / Household Size</label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 5"
+                        value={formData.family_size}
+                        onChange={(e) => setFormData({ ...formData, family_size: e.target.value ? Number(e.target.value) : '' })}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Siblings Currently in School / College</label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 3"
+                        value={formData.siblings_in_school}
+                        onChange={(e) => setFormData({ ...formData, siblings_in_school: e.target.value ? Number(e.target.value) : '' })}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
