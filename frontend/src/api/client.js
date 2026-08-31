@@ -11,6 +11,7 @@ async function request(endpoint, options = {}) {
 
   const config = {
     ...options,
+    credentials: 'include',
     headers: {
       ...defaultHeaders,
       ...options.headers,
@@ -29,7 +30,14 @@ async function request(endpoint, options = {}) {
     }
     const text = await res.text();
     if (!res.ok) {
-      return { success: false, message: text || `HTTP ${res.status}` };
+      if (text.includes('Imunify360') || text.includes('bot-protection')) {
+        return {
+          success: false,
+          isImunifyChallenge: true,
+          message: 'Server security challenge: Open https://bursary.skysoftsystems.co.ke/api/public/statistics in a new tab once to complete 1-time browser verification.',
+        };
+      }
+      return { success: false, message: `HTTP ${res.status}: ${res.statusText || 'Request failed'}` };
     }
     try {
       return JSON.parse(text);

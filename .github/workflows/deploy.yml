@@ -24,6 +24,7 @@ jobs:
           cd frontend
           npm install
           npm run build
+          cp public/.htaccess ./dist/.htaccess || cp ../.htaccess ./dist/.htaccess || true
           cp ../deploy_setup.php ./dist/deploy_setup.php || true
 
       - name: 🚀 Deploy Frontend Build via FTP to cPanel

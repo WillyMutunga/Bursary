@@ -1,0 +1,26 @@
+# LiteSpeed & Apache Configuration for Bursary System
+Options -MultiViews -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Handle Authorization Header for Sanctum
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+  # 1. Route all /api/* requests to Laravel backend
+  RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
+  RewriteRule ^api$ backend/public/index.php [L,QSA]
+
+  # 2. Allow 1-Click setup runner
+  RewriteRule ^deploy_setup\.php$ - [L]
+
+  # 3. Serve physical files/directories directly (assets, images, scripts)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # 4. Route all other client URLs to React SPA index.html
+  RewriteRule . /index.html [L]
+</IfModule>
