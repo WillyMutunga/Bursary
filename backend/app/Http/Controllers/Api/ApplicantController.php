@@ -223,29 +223,56 @@ class ApplicantController extends Controller
         // 3. Smart 100-Point Scoring
         $scoring = $this->scoreService->calculateScore($validated);
 
-        // Generate Application Number
-        $appCount = Application::where('cycle_id', $cycleId)->count() + 1;
-        $appNumber = 'CDF/BURS/2026/' . str_pad($appCount, 6, '0', STR_PAD_LEFT);
+        // Filter out non-table attributes so PostgreSQL never fails on undefined columns
+        $extraParentDetails = [];
+        if ($request->filled('father_name')) $extraParentDetails[] = "Father: " . $request->input('father_name') . " (ID: " . $request->input('father_id') . ", Tel: " . $request->input('father_phone') . ", Occ: " . $request->input('father_occupation') . ")";
+        if ($request->filled('mother_name')) $extraParentDetails[] = "Mother: " . $request->input('mother_name') . " (ID: " . $request->input('mother_id') . ", Tel: " . $request->input('mother_phone') . ", Occ: " . $request->input('mother_occupation') . ")";
+        if ($request->filled('deceased_parent_name')) $extraParentDetails[] = "Late Parent: " . $request->input('deceased_parent_name') . " (Year: " . $request->input('deceased_parent_death_year') . ")";
+        if ($request->filled('deceased_father_name')) $extraParentDetails[] = "Late Father: " . $request->input('deceased_father_name') . " (" . $request->input('deceased_father_year') . ")";
+        if ($request->filled('deceased_mother_name')) $extraParentDetails[] = "Late Mother: " . $request->input('deceased_mother_name') . " (" . $request->input('deceased_mother_year') . ")";
+        if ($request->filled('guardian_relationship')) $extraParentDetails[] = "Guardian Relationship: " . $request->input('guardian_relationship');
 
-        $application = Application::create(array_merge($validated, [
-            'user_id' => $userId,
-            'cycle_id' => $cycleId,
-            'application_no' => $appNumber,
-            'stage' => 'under_verification',
-            'id_verification_status' => $idVerification['status'],
-            'duplicate_risk' => $duplicateCheck['duplicate_risk'],
-            'duplicate_flag_reason' => $duplicateCheck['summary'],
-            'score_financial_need' => $scoring['score_financial_need'],
-            'score_vulnerability' => $scoring['score_vulnerability'],
-            'score_fee_burden' => $scoring['score_fee_burden'],
-            'score_education_need' => $scoring['score_education_need'],
-            'score_household' => $scoring['score_household'],
-            'score_previous_support' => $scoring['score_previous_support'],
-            'total_score' => $scoring['total_score'],
-            'recommended_amount' => $scoring['recommended_amount'],
-            'ocr_match_percentage' => 95,
-            'submitted_at' => now(),
-        ]));
+        $appData = \Illuminate\Support\Arr::only($validated, [
+            'national_id', 'full_name', 'phone', 'email', 'ward_id', 'location', 'sub_location', 'village',
+            'institution_id', 'admission_no', 'course_name', 'year_of_study', 'semester_term',
+            'fees_payable', 'fees_paid', 'fee_balance',
+            'parent_status', 'guardian_name', 'guardian_id', 'guardian_phone', 'guardian_occupation', 'guardian_monthly_income',
+            'family_size', 'siblings_in_school',
+            'is_disabled', 'disability_details', 'has_chronic_illness', 'special_circumstances',
+        ]);
+
+        if (!empty($extraParentDetails)) {
+            $existingSpec = $appData['special_circumstances'] ?? '';
+            $appData['special_circumstances'] = trim($existingSpec . "\n" . implode("\n", $extraParentDetails));
+        }
+
+        try {
+            $application = Application::create(array_merge($appData, [
+                'user_id' => $userId,
+                'cycle_id' => $cycleId,
+                'application_no' => $appNumber,
+                'stage' => 'under_verification',
+                'id_verification_status' => $idVerification['status'],
+                'duplicate_risk' => $duplicateCheck['duplicate_risk'],
+                'duplicate_flag_reason' => $duplicateCheck['summary'],
+                'score_financial_need' => $scoring['score_financial_need'],
+                'score_vulnerability' => $scoring['score_vulnerability'],
+                'score_fee_burden' => $scoring['score_fee_burden'],
+                'score_education_need' => $scoring['score_education_need'],
+                'score_household' => $scoring['score_household'],
+                'score_previous_support' => $scoring['score_previous_support'],
+                'total_score' => $scoring['total_score'],
+                'recommended_amount' => $scoring['recommended_amount'],
+                'ocr_match_percentage' => 95,
+                'submitted_at' => now(),
+            ]));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Application save failed: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to save application: ' . $e->getMessage(),
+            ], 500);
+        }
 
         // Log ID Verification Record
         IdentityVerification::create([

@@ -145,16 +145,64 @@ export default function ApplicantPortal({
     declaration_agreed: true,
   });
 
+  // Draft storage key
+  const draftStorageKey = `ngcdf_draft_${currentUser?.national_id || currentUser?.id || 'applicant'}`;
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem(draftStorageKey);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        setFormData((prev) => ({
+          ...prev,
+          ...parsed,
+          documents: prev.documents, // keep file documents container
+        }));
+        setDraftRestored(true);
+      }
+    } catch (err) {
+      console.warn('Draft restore error:', err);
+    }
+  }, [currentUser]);
+
+  // Automatically save draft on any change to formData
+  useEffect(() => {
+    try {
+      const { documents, ...draftPayload } = formData;
+      if (
+        draftPayload.admission_no ||
+        draftPayload.fees_payable ||
+        draftPayload.father_name ||
+        draftPayload.guardian_name ||
+        draftPayload.education_level !== 'secondary'
+      ) {
+        localStorage.setItem(draftStorageKey, JSON.stringify(draftPayload));
+      }
+    } catch (err) {
+      // Ignore storage errors
+    }
+  }, [formData, draftStorageKey]);
+
+  const handleClearDraft = () => {
+    try {
+      localStorage.removeItem(draftStorageKey);
+      setDraftRestored(false);
+      window.location.reload();
+    } catch (e) {}
+  };
+
   // Sync formData when currentUser changes
   useEffect(() => {
     if (currentUser?.name) {
       setFormData((prev) => ({
         ...prev,
-        full_name: currentUser.name || prev.full_name,
-        national_id: currentUser.national_id || prev.national_id,
-        phone: currentUser.phone || prev.phone,
-        email: currentUser.email || prev.email,
-        ward_id: currentUser.ward_id || prev.ward_id,
+        full_name: prev.full_name || currentUser.name,
+        national_id: prev.national_id || currentUser.national_id,
+        phone: prev.phone || currentUser.phone,
+        email: prev.email || currentUser.email,
+        ward_id: prev.ward_id || currentUser.ward_id,
       }));
     }
   }, [currentUser]);
@@ -368,6 +416,8 @@ export default function ApplicantPortal({
       setMyApp(savedApp);
       const localKey = `ngcdf_app_${currentUser?.national_id || currentUser?.id || 'guest'}`;
       localStorage.setItem(localKey, JSON.stringify(savedApp));
+      localStorage.removeItem(draftStorageKey);
+      setDraftRestored(false);
 
       if (onSubmitNewApplication) {
         onSubmitNewApplication(savedApp);
@@ -796,6 +846,24 @@ export default function ApplicantPortal({
               <Sparkles className="w-4 h-4 text-amber-600" /> Fill Sample Demo Data
             </button>
           </div>
+
+          {draftRestored && (
+            <div className="mb-6 p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-900 animate-fade-in">
+              <div className="flex items-center gap-2">
+                <span className="text-base">💾</span>
+                <span>
+                  <strong>Draft Restored:</strong> Your previously entered application details have been automatically restored so you don't lose any progress.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearDraft}
+                className="text-[11px] text-rose-600 hover:text-rose-800 font-bold shrink-0 hover:underline"
+              >
+                Reset & Start Fresh ✕
+              </button>
+            </div>
+          )}
 
           {/* 4-Step Progress Indicator */}
           <div className="grid grid-cols-4 gap-2 pb-8 mb-8 border-b border-slate-200">
