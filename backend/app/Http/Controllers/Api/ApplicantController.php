@@ -156,11 +156,20 @@ class ApplicantController extends Controller
 
         $instName = $request->input('institution_name') ?: $request->input('institution');
         if ($instName) {
+            $eduLevel = strtolower($request->input('education_level', 'university'));
+            $allowedType = match ($eduLevel) {
+                'secondary' => 'secondary',
+                'college_tvet', 'tvet', 'college' => 'tvet',
+                'special_needs' => 'special_needs',
+                default => 'university',
+            };
+
+            $baseCode = strtoupper(\Illuminate\Support\Str::slug(trim($instName)));
             $inst = \App\Models\Institution::firstOrCreate(
                 ['name' => trim($instName)],
                 [
-                    'code' => strtoupper(\Illuminate\Support\Str::slug($instName)),
-                    'type' => 'tertiary',
+                    'code' => substr($baseCode, 0, 20) . '-' . rand(100, 999),
+                    'type' => $allowedType,
                     'county' => 'Kenya',
                 ]
             );
