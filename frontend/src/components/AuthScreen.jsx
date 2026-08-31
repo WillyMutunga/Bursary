@@ -105,7 +105,7 @@ export default function AuthScreen({
       });
 
       if (!res || !res.success) {
-        setErrorMessage(res?.message || 'Registration failed. Please check your information.');
+        setErrorMessage(res?.message || res?.error || 'Registration failed. Please check your information.');
         setIsLoading(false);
         return;
       }
@@ -359,8 +359,9 @@ export default function AuthScreen({
               </div>
 
               {errorMessage && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs">
-                  {errorMessage}
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span className="font-bold">{errorMessage}</span>
                 </div>
               )}
 

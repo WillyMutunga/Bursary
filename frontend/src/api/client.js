@@ -27,6 +27,9 @@ async function request(endpoint, options = {}) {
   }
 
   try {
+    const res = await fetch(url, config);
+    const contentType = res.headers.get('content-type') || '';
+
     if (contentType.includes('application/json')) {
       const data = await res.json();
       if (!res.ok) {
@@ -58,7 +61,7 @@ async function request(endpoint, options = {}) {
     }
   } catch (error) {
     console.warn(`API call to ${endpoint} failed:`, error.message);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, message: error.message };
   }
 }
 
