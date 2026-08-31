@@ -1,22 +1,11 @@
-const CACHE_NAME = 'ngcdf-bursary-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/favicon.png',
-  '/logo.png',
-  '/manifest.json'
-];
+const CACHE_NAME = 'ngcdf-bursary-v2';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  // Wipe all previous stale caches
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
@@ -33,17 +22,13 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('/api/')) {
-    // Network first for real database API requests
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
-    return;
-  }
 
+  // Network First for ALL requests (HTML, JS, CSS, and API) so users always receive latest code
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
