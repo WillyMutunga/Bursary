@@ -131,13 +131,25 @@ export default function DocumentViewerModal({ isOpen, onClose, document, student
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-slate-800 bg-[#0B132B] flex justify-between items-center text-xs">
-          <span className="text-slate-400 font-mono text-[11px]">Format: PDF / High-Res Image (2.4 MB)</span>
-          <button
-            onClick={onClose}
-            className="px-5 py-2 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-bold rounded-xl shadow transition-colors cursor-pointer"
-          >
-            Close Document Preview
-          </button>
+          <span className="text-slate-400 font-mono text-[11px]">Format: PDF / High-Res Image ({document?.file_size_kb ? `${document.file_size_kb} KB` : 'Verified'})</span>
+          <div className="flex items-center gap-2">
+            {document?.file_path && (
+              <a
+                href={`/storage/${document.file_path}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold rounded-xl flex items-center gap-1.5 border border-slate-700 text-xs transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" /> Download File
+              </a>
+            )}
+            <button
+              onClick={onClose}
+              className="px-5 py-2 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-bold rounded-xl shadow transition-colors cursor-pointer"
+            >
+              Close Document Preview
+            </button>
+          </div>
         </div>
 
       </div>

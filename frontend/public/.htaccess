@@ -13,6 +13,9 @@ Options -MultiViews -Indexes
   RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
   RewriteRule ^api$ backend/public/index.php [L,QSA]
 
+  # 1b. Route /storage/* to backend storage
+  RewriteRule ^storage/(.*)$ backend/storage/app/public/$1 [L]
+
   # 2. Allow 1-Click setup runner
   RewriteRule ^deploy_setup\.php$ - [L]
 

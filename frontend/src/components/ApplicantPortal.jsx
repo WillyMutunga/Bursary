@@ -163,6 +163,7 @@ export default function ApplicantPortal({
             size: (file.size / 1024).toFixed(1) + ' KB',
             type: file.type,
             uploadedAt: new Date().toLocaleTimeString(),
+            fileObject: file,
           },
         },
       }));
@@ -283,8 +284,28 @@ export default function ApplicantPortal({
       email: formData.email || currentUser?.email || '',
     };
 
+    const uploadData = new FormData();
+    Object.keys(payload).forEach((key) => {
+      if (key !== 'documents' && payload[key] !== null && payload[key] !== undefined) {
+        uploadData.append(key, payload[key]);
+      }
+    });
+
+    if (formData.documents?.national_id_doc?.fileObject) {
+      uploadData.append('national_id_doc', formData.documents.national_id_doc.fileObject);
+    }
+    if (formData.documents?.fee_structure_doc?.fileObject) {
+      uploadData.append('fee_structure_doc', formData.documents.fee_structure_doc.fileObject);
+    }
+    if (formData.documents?.admission_letter_doc?.fileObject) {
+      uploadData.append('admission_letter_doc', formData.documents.admission_letter_doc.fileObject);
+    }
+    if (formData.documents?.guardian_id_doc?.fileObject) {
+      uploadData.append('guardian_id_doc', formData.documents.guardian_id_doc.fileObject);
+    }
+
     try {
-      const res = await api.submitWizard(payload);
+      const res = await api.submitWizard(uploadData);
       if (res && res.success === false) {
         setSubmitError(
           res.message ||

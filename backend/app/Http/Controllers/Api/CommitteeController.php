@@ -88,6 +88,10 @@ class CommitteeController extends Controller
         if ($request->decision === 'APPROVE') {
             $awardService->generateAwardLetterPayload($application);
 
+            \App\Services\NotificationService::notifyMilestone('AWARDED', array_merge($application->toArray(), [
+                'approved_amount' => $approved,
+            ]));
+
             Notification::create([
                 'user_id' => $application->user_id,
                 'application_id' => $application->id,

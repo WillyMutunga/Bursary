@@ -145,6 +145,8 @@ class VerificationOfficerController extends Controller
         $application = Application::findOrFail($id);
         $application->update(['stage' => 'committee_review']);
 
+        \App\Services\NotificationService::notifyMilestone('VERIFIED', $application->toArray());
+
         Notification::create([
             'user_id' => $application->user_id,
             'application_id' => $application->id,

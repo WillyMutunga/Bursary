@@ -13,7 +13,9 @@ use App\Services\DuplicateDetectionService;
 use App\Services\NationalIdVerificationService;
 use App\Services\OcrDocumentService;
 use App\Services\SmartScoringService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ApplicantController extends Controller
@@ -236,23 +238,40 @@ class ApplicantController extends Controller
             'verified_at' => now(),
         ]);
 
-        // Create standard supporting documents with simulated OCR extraction
-        $docs = [
-            ['type' => 'id_card', 'title' => 'Applicant National ID / Birth Certificate'],
-            ['type' => 'fee_structure', 'title' => 'Current Fee Structure & Fee Balance Statement'],
-            ['type' => 'admission_letter', 'title' => 'Official Institution Admission Letter'],
+        // Handle physical file uploads & supporting documents
+        $fileConfigs = [
+            'national_id_doc' => ['type' => 'id_card', 'title' => 'Applicant National ID / Birth Certificate'],
+            'fee_structure_doc' => ['type' => 'fee_structure', 'title' => 'Current Fee Structure & Balance Statement'],
+            'admission_letter_doc' => ['type' => 'admission_letter', 'title' => 'Official Institution Admission / Report Form'],
+            'guardian_id_doc' => ['type' => 'guardian_id', 'title' => 'Parent / Guardian Identification'],
         ];
 
-        foreach ($docs as $d) {
+        $appFolder = 'documents/2026/' . str_replace('/', '_', $application->application_no);
+
+        foreach ($fileConfigs as $fieldKey => $d) {
             $ocrResult = $this->ocrService->extractAndCompare($validated, $d['type'], $d['title']);
+
+            if ($request->hasFile($fieldKey) && $request->file($fieldKey)->isValid()) {
+                $uploadedFile = $request->file($fieldKey);
+                $ext = $uploadedFile->getClientOriginalExtension() ?: 'pdf';
+                $safeName = $d['type'] . '_' . time() . '.' . $ext;
+                $savedPath = $uploadedFile->storeAs($appFolder, $safeName, 'public');
+                $fileSizeKb = round($uploadedFile->getSize() / 1024);
+                $originalName = $uploadedFile->getClientOriginalName();
+            } else {
+                $safeName = Str::slug($application->full_name . '-' . $d['type']) . '.pdf';
+                $savedPath = $appFolder . '/' . $safeName;
+                $fileSizeKb = rand(180, 420);
+                $originalName = $safeName;
+            }
 
             Document::create([
                 'application_id' => $application->id,
                 'document_type' => $d['type'],
                 'title' => $d['title'],
-                'file_name' => Str::slug($application->full_name . '-' . $d['type']) . '.pdf',
-                'file_path' => 'documents/2026/' . $application->application_no . '/' . $d['type'] . '.pdf',
-                'file_size_kb' => rand(180, 420),
+                'file_name' => $originalName,
+                'file_path' => $savedPath,
+                'file_size_kb' => $fileSizeKb,
                 'ocr_status' => $ocrResult['ocr_status'],
                 'ocr_extracted_data' => $ocrResult['extracted_data'],
                 'ocr_match_score' => $ocrResult['match_score'],
@@ -260,14 +279,12 @@ class ApplicantController extends Controller
             ]);
         }
 
-        // Create Applicant notification
-        Notification::create([
+        // Trigger SMS & Email Notification
+        NotificationService::notifyMilestone('SUBMITTED', array_merge($validated, [
+            'id' => $application->id,
             'user_id' => $userId,
-            'application_id' => $application->id,
-            'title' => 'Application Successfully Submitted',
-            'message' => "Your bursary application {$application->application_no} has been received and is now undergoing automated verification.",
-            'type' => 'status_change',
-        ]);
+            'application_no' => $application->application_no,
+        ]));
 
         AuditLoggerService::log(
             action: 'APPLICATION_SUBMITTED',

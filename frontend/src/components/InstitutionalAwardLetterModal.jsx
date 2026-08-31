@@ -158,15 +158,15 @@ export default function InstitutionalAwardLetterModal({
             <div className="space-y-4">
               <p className="text-[10px] font-bold uppercase text-slate-600">Fund Manager Signature:</p>
               <div className="border-b border-slate-400 pb-1">
-                <span className="font-serif italic font-bold text-slate-900">Alex Kimani</span>
+                <span className="font-serif italic font-bold text-slate-900">Willy</span>
               </div>
-              <p className="text-[9px] text-slate-500">Constituency Fund Manager</p>
+              <p className="text-[9px] text-slate-500">Constituency Fund Manager / Super Admin</p>
             </div>
 
             <div className="space-y-4">
               <p className="text-[10px] font-bold uppercase text-slate-600">Committee Chairperson:</p>
               <div className="border-b border-slate-400 pb-1">
-                <span className="font-serif italic font-bold text-slate-900">Willy / Hon. Grace Njeri</span>
+                <span className="font-serif italic font-bold text-slate-900">Constituency Committee Chairperson</span>
               </div>
               <p className="text-[9px] text-slate-500">Bursary Committee Chairperson</p>
             </div>

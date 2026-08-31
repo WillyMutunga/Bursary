@@ -25,7 +25,7 @@ export default function AwardLetterModal({
     amount_kes: approvedAmount,
     cycle: '2026/2027 Financial Year',
     hash: hash,
-    verification_url: `https://kibweziwestngcdf.go.ke/verify/award/${hash}`,
+    verification_url: `https://bursary.skysoftsystems.co.ke/verify/award/${hash}`,
     status: 'OFFICIALLY_VERIFIED_VALID',
   });
 
@@ -156,9 +156,9 @@ export default function AwardLetterModal({
             <div className="space-y-4">
               <p className="text-[10px] font-bold uppercase text-slate-600">Fund Manager Signature:</p>
               <div className="border-b border-slate-400 pb-1">
-                <span className="font-serif italic font-bold text-slate-900">Alex Kimani</span>
+                <span className="font-serif italic font-bold text-slate-900">Willy</span>
               </div>
-              <p className="text-[9px] text-slate-500">Constituency Fund Manager</p>
+              <p className="text-[9px] text-slate-500">Constituency Fund Manager / Super Admin</p>
             </div>
 
             <div className="space-y-4">
