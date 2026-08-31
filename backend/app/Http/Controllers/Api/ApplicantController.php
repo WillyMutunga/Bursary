@@ -124,8 +124,8 @@ class ApplicantController extends Controller
             'guardian_monthly_income' => 'nullable|numeric',
             'family_size' => 'nullable|integer',
             'siblings_in_school' => 'nullable|integer',
-            'is_disabled' => 'nullable|boolean',
-            'has_chronic_illness' => 'nullable|boolean',
+            'is_disabled' => 'nullable',
+            'has_chronic_illness' => 'nullable',
             'special_circumstances' => 'nullable|string',
             'father_name' => 'nullable|string',
             'father_id' => 'nullable|string',
@@ -143,6 +143,9 @@ class ApplicantController extends Controller
             'deceased_mother_year' => 'nullable|string',
             'guardian_relationship' => 'nullable|string',
         ]);
+
+        $validated['is_disabled'] = filter_var($request->input('is_disabled'), FILTER_VALIDATE_BOOLEAN);
+        $validated['has_chronic_illness'] = filter_var($request->input('has_chronic_illness'), FILTER_VALIDATE_BOOLEAN);
 
         if ($request->filled('father_name') && $request->filled('mother_name')) {
             $validated['guardian_name'] = trim($request->input('father_name') . ' & ' . $request->input('mother_name'));

@@ -325,7 +325,11 @@ export default function ApplicantPortal({
     const uploadData = new FormData();
     Object.keys(payload).forEach((key) => {
       if (key !== 'documents' && payload[key] !== null && payload[key] !== undefined) {
-        uploadData.append(key, payload[key]);
+        if (typeof payload[key] === 'boolean') {
+          uploadData.append(key, payload[key] ? '1' : '0');
+        } else {
+          uploadData.append(key, payload[key]);
+        }
       }
     });
 
@@ -1992,7 +1996,11 @@ export default function ApplicantPortal({
                   <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl flex items-start gap-3 text-rose-800 animate-fade-in text-left">
                     <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
                     <div>
-                      <p className="font-black text-xs uppercase tracking-wider text-rose-900">Application Blocked (Duplicate ID)</p>
+                      <p className="font-black text-xs uppercase tracking-wider text-rose-900">
+                        {submitError.toLowerCase().includes('already been used') || submitError.toLowerCase().includes('duplicate')
+                          ? 'Application Blocked (Duplicate ID)'
+                          : 'Application Submission Notice'}
+                      </p>
                       <p className="text-xs mt-0.5 font-medium leading-relaxed">{submitError}</p>
                     </div>
                   </div>
