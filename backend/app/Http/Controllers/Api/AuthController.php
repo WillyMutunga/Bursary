@@ -12,22 +12,40 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'email' => 'required',
             'password' => 'required',
+        ], [
+            'email.required' => 'Please enter your username, National ID, or email.',
+            'password.required' => 'Please enter your password.',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
         $identifier = trim($request->email);
-        $user = User::where('email', 'ILIKE', $identifier)
-            ->orWhere('name', 'ILIKE', $identifier)
-            ->orWhere('national_id', $identifier)
-            ->orWhere('phone', $identifier)
-            ->first();
+        $cleanPhone = preg_replace('/[^0-9]/', '', $identifier);
+
+        $user = User::where(function ($query) use ($identifier, $cleanPhone) {
+            $query->where('email', 'ILIKE', $identifier)
+                ->orWhere('name', 'ILIKE', $identifier)
+                ->orWhere('national_id', $identifier)
+                ->orWhere('phone', $identifier);
+
+            if (!empty($cleanPhone) && strlen($cleanPhone) >= 6) {
+                $query->orWhere('national_id', $cleanPhone)
+                    ->orWhere('phone', 'LIKE', "%{$cleanPhone}%");
+            }
+        })->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials provided.',
+                'message' => 'Invalid credentials provided. Please verify your National ID / Email and Password.',
             ], 401);
         }
 
@@ -61,23 +79,37 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'national_id' => 'required|string|unique:users',
-            'phone' => 'required|string',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'national_id' => 'required|string|max:50|unique:users,national_id',
+            'phone' => 'required|string|max:30',
             'password' => 'required|string|min:6',
+            'ward_id' => 'nullable|integer',
+        ], [
+            'email.unique' => 'An account with this email address already exists. Please log in with your email or ID.',
+            'national_id.unique' => 'An account with this National ID number already exists. Please log in with your ID number.',
+            'password.min' => 'Password must be at least 6 characters long.',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'national_id' => $request->national_id,
-            'phone' => $request->phone,
+            'name' => trim($request->name),
+            'email' => strtolower(trim($request->email)),
+            'national_id' => trim($request->national_id),
+            'phone' => trim($request->phone),
             'ward_id' => $request->input('ward_id', 1),
             'password' => Hash::make($request->password),
             'role' => 'applicant',
             'designation' => 'Student / Bursary Applicant',
+            'is_active' => true,
         ]);
 
         $token = $user->createToken('bursary_auth_token')->plainTextToken;
@@ -93,8 +125,18 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
+            'message' => 'Account registered successfully!',
             'token' => $token,
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'role' => $user->role,
+                'national_id' => $user->national_id,
+                'ward_id' => $user->ward_id,
+                'designation' => $user->designation,
+            ],
         ], 201);
     }
 

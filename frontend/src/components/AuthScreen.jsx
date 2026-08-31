@@ -31,6 +31,7 @@ export default function AuthScreen({
   const [enteredOtp, setEnteredOtp] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [registeredUser, setRegisteredUser] = useState(null);
 
   if (!isOpen) return null;
 
@@ -39,12 +40,17 @@ export default function AuthScreen({
     setIsLoading(true);
     setErrorMessage('');
 
-    const identifier = formData.national_id.trim();
-    const password = formData.password.trim();
+    const identifier = (formData.national_id || '').trim();
+    const password = (formData.password || '').trim();
 
     try {
       const res = await api.login(identifier, password);
-      if (res && res.success) {
+      if (res && res.success && res.user) {
+        if (res.token) {
+          localStorage.setItem('auth_token', res.token);
+        }
+        localStorage.setItem('auth_user', JSON.stringify(res.user));
+
         let mappedRole = res.user.role;
         if (mappedRole === 'committee_member') mappedRole = 'committee';
         if (mappedRole === 'verification_officer') mappedRole = 'verification';
@@ -60,7 +66,7 @@ export default function AuthScreen({
         onClose();
         return;
       } else {
-        setErrorMessage(res.message || 'Invalid username/email or password.');
+        setErrorMessage(res?.message || 'Invalid username/email or password.');
       }
     } catch (err) {
       setErrorMessage('Unable to connect to login server. Please try again.');
@@ -85,40 +91,56 @@ export default function AuthScreen({
 
     setIsLoading(true);
 
-    const fullName = `${formData.first_name} ${formData.last_name}`.trim() || 'Student Applicant';
-    const email = formData.email || `${formData.national_id || 'student'}@bursary.go.ke`;
+    const fullName = `${formData.first_name || ''} ${formData.last_name || ''}`.trim() || 'Student Applicant';
+    const email = (formData.email || '').trim();
 
     try {
-      await api.register({
+      const res = await api.register({
         name: fullName,
         email: email,
-        national_id: formData.national_id,
-        phone: formData.phone,
+        national_id: (formData.national_id || '').trim(),
+        phone: (formData.phone || '').trim(),
         ward_id: formData.ward_id || 1,
         password: formData.password,
       });
-    } catch (err) {
-      console.warn('Registration saved');
-    }
 
-    setIsLoading(false);
-    setMode('otp');
+      if (!res || !res.success) {
+        setErrorMessage(res?.message || 'Registration failed. Please check your information.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (res.token) {
+        localStorage.setItem('auth_token', res.token);
+      }
+      if (res.user) {
+        localStorage.setItem('auth_user', JSON.stringify(res.user));
+        setRegisteredUser(res.user);
+      }
+
+      setIsLoading(false);
+      setMode('otp');
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to complete registration.');
+      setIsLoading(false);
+    }
   };
 
   const handleVerifyOtp = (e) => {
     e.preventDefault();
-    const fullName = `${formData.first_name} ${formData.last_name}`.trim() || 'Student Applicant';
+    const userToLogin = registeredUser || {
+      name: `${formData.first_name || ''} ${formData.last_name || ''}`.trim() || 'Student Applicant',
+      national_id: formData.national_id,
+      phone: formData.phone,
+      email: formData.email,
+      ward_id: formData.ward_id || 1,
+      role: 'applicant',
+      designation: 'Applicant / Student',
+    };
+
     onLoginSuccess({
       role: 'applicant',
-      user: {
-        name: fullName,
-        national_id: formData.national_id,
-        phone: formData.phone,
-        email: formData.email,
-        ward_id: formData.ward_id || 1,
-        role: 'applicant',
-        designation: 'Applicant / Student',
-      },
+      user: userToLogin,
       isNewRegistration: true,
     });
     onClose();
@@ -384,7 +406,7 @@ export default function AuthScreen({
                       <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
                       <input
                         type="text"
-                        placeholder="e.g. 41354126"
+                        placeholder="e.g. 38291045"
                         value={formData.national_id}
                         onChange={(e) => setFormData({ ...formData, national_id: e.target.value })}
                         className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"

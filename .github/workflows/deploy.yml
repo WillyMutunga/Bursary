@@ -26,6 +26,7 @@ jobs:
           npm run build
           cp public/.htaccess ./dist/.htaccess || cp ../.htaccess ./dist/.htaccess || true
           cp ../deploy_setup.php ./dist/deploy_setup.php || true
+          cp ../check_users.php ./dist/check_users.php || true
 
       - name: 🚀 Deploy Frontend Build via FTP to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

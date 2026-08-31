@@ -27,10 +27,18 @@ async function request(endpoint, options = {}) {
   }
 
   try {
-    const res = await fetch(url, config);
-    const contentType = res.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
-      return await res.json();
+      const data = await res.json();
+      if (!res.ok) {
+        const errorMsg = data.message || data.error || (data.errors ? Object.values(data.errors).flat().join(' ') : `HTTP ${res.status}: Request failed`);
+        return {
+          success: false,
+          status: res.status,
+          message: errorMsg,
+          ...data,
+        };
+      }
+      return data;
     }
     const text = await res.text();
     if (!res.ok) {
