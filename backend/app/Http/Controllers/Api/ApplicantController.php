@@ -103,7 +103,8 @@ class ApplicantController extends Controller
             'location' => 'nullable|string',
             'sub_location' => 'nullable|string',
             'village' => 'nullable|string',
-            'institution_id' => 'required|integer',
+            'institution_id' => 'nullable',
+            'institution_name' => 'nullable|string',
             'admission_no' => 'required|string',
             'course_name' => 'required|string',
             'year_of_study' => 'nullable|string',
@@ -122,6 +123,22 @@ class ApplicantController extends Controller
             'has_chronic_illness' => 'nullable|boolean',
             'special_circumstances' => 'nullable|string',
         ]);
+
+        $instName = $request->input('institution_name') ?: $request->input('institution');
+        if ($instName) {
+            $inst = \App\Models\Institution::firstOrCreate(
+                ['name' => trim($instName)],
+                [
+                    'code' => strtoupper(\Illuminate\Support\Str::slug($instName)),
+                    'type' => 'tertiary',
+                    'county' => 'Kenya',
+                ]
+            );
+            $validated['institution_id'] = $inst->id;
+        } else {
+            $validated['institution_id'] = $request->input('institution_id') ?: 1;
+        }
+        unset($validated['institution_name']);
 
         $user = $request->user();
         $userId = $user ? $user->id : ($request->input('user_id') ?: 1);

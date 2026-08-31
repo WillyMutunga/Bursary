@@ -85,6 +85,7 @@ export default function ApplicantPortal({
     village: '',
     physical_address: '',
     institution_id: 1,
+    institution_name: '',
     admission_no: '',
     course_name: '',
     year_of_study: 'Year 1',
@@ -842,15 +843,14 @@ export default function ApplicantPortal({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="sm:col-span-2">
                     <label className="block font-bold text-slate-700 mb-1">Learning Institution</label>
-                    <select
-                      value={formData.institution_id}
-                      onChange={(e) => setFormData({ ...formData, institution_id: Number(e.target.value) })}
+                    <input
+                      type="text"
+                      placeholder="Type your school, college or university name (e.g. University of Nairobi, Machakos University, KMTC)"
+                      value={formData.institution_name}
+                      onChange={(e) => setFormData({ ...formData, institution_name: e.target.value })}
                       className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                    >
-                      {institutions.map((inst) => (
-                        <option key={inst.id} value={inst.id}>{inst.name} ({inst.type?.toUpperCase()})</option>
-                      ))}
-                    </select>
+                      required
+                    />
                   </div>
 
                   <div>
