@@ -68,13 +68,17 @@ class NotificationService
 
         // Store in notifications table if user/app ID is present
         if ($userId) {
-            Notification::create([
-                'user_id' => $userId,
-                'application_id' => $appId,
-                'title' => 'SMS Dispatched',
-                'message' => $message,
-                'type' => 'sms',
-            ]);
+            try {
+                Notification::create([
+                    'user_id' => $userId,
+                    'application_id' => $appId,
+                    'title' => 'SMS Dispatched',
+                    'message' => $message,
+                    'type' => 'sms_alert',
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning("Notification log error: " . $e->getMessage());
+            }
         }
 
         return [
@@ -102,13 +106,17 @@ class NotificationService
             });
 
             if ($userId) {
-                Notification::create([
-                    'user_id' => $userId,
-                    'application_id' => $appId,
-                    'title' => $subject,
-                    'message' => $bodyContent,
-                    'type' => 'email',
-                ]);
+                try {
+                    Notification::create([
+                        'user_id' => $userId,
+                        'application_id' => $appId,
+                        'title' => $subject,
+                        'message' => $bodyContent,
+                        'type' => 'status_change',
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning("Notification email log error: " . $e->getMessage());
+                }
             }
 
             return true;

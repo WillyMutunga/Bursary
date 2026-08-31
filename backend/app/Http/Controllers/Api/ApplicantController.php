@@ -95,9 +95,10 @@ class ApplicantController extends Controller
 
     public function submitWizard(Request $request)
     {
-        $validated = $request->validate([
-            'full_name' => 'required|string',
-            'national_id' => 'required|string',
+        try {
+            $validated = $request->validate([
+                'full_name' => 'required|string',
+                'national_id' => 'required|string',
             'gender' => 'required|string',
             'phone' => 'required|string',
             'email' => 'nullable|email',
@@ -353,7 +354,20 @@ class ApplicantController extends Controller
             'data' => $application->load(['cycle', 'ward', 'institution', 'documents', 'identityVerifications']),
             'scoring_breakdown' => $scoring,
         ], 201);
+    } catch (\Illuminate\Validation\ValidationException $ve) {
+        return response()->json([
+            'success' => false,
+            'message' => $ve->validator->errors()->first(),
+            'errors' => $ve->validator->errors(),
+        ], 422);
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error("submitWizard error: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
+        return response()->json([
+            'success' => false,
+            'message' => 'Application processing notice: ' . $e->getMessage(),
+        ], 500);
     }
+}
 
     public function notifications(Request $request)
     {
