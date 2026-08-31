@@ -84,12 +84,17 @@ export default function ApplicantPortal({
     sub_location: '',
     village: '',
     physical_address: '',
+    
+    // Level of Study
+    education_level: 'secondary', // 'secondary', 'university', 'college_tvet', 'special_needs'
+    school_type: 'Boarding School', // 'Day School', 'Boarding School'
+    school_classification: 'Sub-County', // 'Sub-County', 'County', 'Extra-County', 'National'
     institution_id: 1,
     institution_name: '',
     admission_no: '',
     course_name: '',
-    year_of_study: 'Year 1',
-    semester_term: 'Semester 1',
+    year_of_study: 'Form 1',
+    semester_term: 'Term 1',
     fees_payable: '',
     fees_paid: '',
     fee_balance: '',
@@ -834,18 +839,90 @@ export default function ApplicantPortal({
                 </div>
 
                 <div className="pt-4 border-t border-slate-100">
-                  <h4 className="text-sm font-black text-[#0F172A] flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-[#0B6B3A]" /> 2. Academic & Fee Information
-                  </h4>
-                  <p className="text-slate-500 text-[11px]">Provide accurate institutional and fee statement figures.</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                    <div>
+                      <h4 className="text-sm font-black text-[#0F172A] flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-[#0B6B3A]" /> 2. Level of Study & Academic Information
+                      </h4>
+                      <p className="text-slate-500 text-[11px]">Select your educational level to customize your application details and fee figures.</p>
+                    </div>
+                  </div>
+
+                  {/* Level of Study Tabs / Radio Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+                    {[
+                      { id: 'secondary', label: 'Secondary School', sub: 'Form 1 - Form 4', icon: '🏫' },
+                      { id: 'university', label: 'University', sub: 'Degree / Postgrad', icon: '🎓' },
+                      { id: 'college_tvet', label: 'College / TVET', sub: 'Diploma / Certificate', icon: '🏛️' },
+                      { id: 'special_needs', label: 'Special Needs', sub: 'Special Institution', icon: '♿' },
+                    ].map((lvl) => {
+                      const isSelected = formData.education_level === lvl.id;
+                      return (
+                        <button
+                          key={lvl.id}
+                          type="button"
+                          onClick={() => {
+                            let defaultYear = 'Form 1';
+                            let defaultPeriod = 'Term 1';
+                            if (lvl.id === 'university') {
+                              defaultYear = 'Year 1';
+                              defaultPeriod = 'Semester 1';
+                            } else if (lvl.id === 'college_tvet') {
+                              defaultYear = 'Year 1';
+                              defaultPeriod = 'Term 1';
+                            } else if (lvl.id === 'special_needs') {
+                              defaultYear = 'Stage 1';
+                              defaultPeriod = 'Term 1';
+                            }
+                            setFormData({
+                              ...formData,
+                              education_level: lvl.id,
+                              year_of_study: defaultYear,
+                              semester_term: defaultPeriod,
+                              course_name: lvl.id === 'secondary' ? 'Secondary Education' : formData.course_name,
+                            });
+                          }}
+                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-emerald-50 border-[#0B6B3A] ring-2 ring-[#0B6B3A]/20 shadow-sm'
+                              : 'bg-white border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="text-xl mb-1">{lvl.icon}</div>
+                          <div>
+                            <p className={`font-bold text-xs ${isSelected ? 'text-[#0B6B3A]' : 'text-slate-800'}`}>{lvl.label}</p>
+                            <p className="text-[10px] text-slate-500">{lvl.sub}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
+                {/* Adaptive Inputs Based on Chosen Level */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Institution Name */}
                   <div className="sm:col-span-2">
-                    <label className="block font-bold text-slate-700 mb-1">Learning Institution</label>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      {formData.education_level === 'secondary'
+                        ? 'Secondary School Name'
+                        : formData.education_level === 'university'
+                        ? 'University Name'
+                        : formData.education_level === 'college_tvet'
+                        ? 'College / TVET / Polytechnic Name'
+                        : 'Special Needs School / Centre'}
+                    </label>
                     <input
                       type="text"
-                      placeholder="Type your school, college or university name (e.g. University of Nairobi, Machakos University, KMTC)"
+                      placeholder={
+                        formData.education_level === 'secondary'
+                          ? 'e.g. Makindu Boys High School, St. Joseph Girls, Emali Secondary'
+                          : formData.education_level === 'university'
+                          ? 'e.g. University of Nairobi, Kenyatta University, Machakos University'
+                          : formData.education_level === 'college_tvet'
+                          ? 'e.g. Kabete National Polytechnic, KMTC Nairobi, Kitise VTC'
+                          : 'e.g. St. Francis Special Needs School'
+                      }
                       value={formData.institution_name}
                       onChange={(e) => setFormData({ ...formData, institution_name: e.target.value })}
                       className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
@@ -853,11 +930,24 @@ export default function ApplicantPortal({
                     />
                   </div>
 
+                  {/* Admission / Registration Number */}
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Student Admission Number</label>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      {formData.education_level === 'secondary'
+                        ? 'Admission No / NEMIS UPI'
+                        : formData.education_level === 'university'
+                        ? 'University Registration No'
+                        : 'Student Admission / Reg No'}
+                    </label>
                     <input
                       type="text"
-                      placeholder="e.g. UON/ENG/2024/045"
+                      placeholder={
+                        formData.education_level === 'secondary'
+                          ? 'e.g. ADM-3942 or NEMIS UPI'
+                          : formData.education_level === 'university'
+                          ? 'e.g. C01/14290/2024'
+                          : 'e.g. KNP/ELEC/2024/045'
+                      }
                       value={formData.admission_no}
                       onChange={(e) => setFormData({ ...formData, admission_no: e.target.value })}
                       className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
@@ -865,43 +955,113 @@ export default function ApplicantPortal({
                     />
                   </div>
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Course / Programme of Study</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. BSc. Electrical Engineering"
-                      value={formData.course_name}
-                      onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                      required
-                    />
-                  </div>
+                  {/* Secondary School Category & Level (Only for Secondary) */}
+                  {formData.education_level === 'secondary' && (
+                    <>
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">School Type</label>
+                        <select
+                          value={formData.school_type}
+                          onChange={(e) => setFormData({ ...formData, school_type: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                        >
+                          <option value="Boarding School">Boarding School</option>
+                          <option value="Day School">Day School</option>
+                        </select>
+                      </div>
 
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">School Classification</label>
+                        <select
+                          value={formData.school_classification}
+                          onChange={(e) => setFormData({ ...formData, school_classification: e.target.value })}
+                          className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                        >
+                          <option value="Sub-County">Sub-County Secondary School</option>
+                          <option value="County">County Secondary School</option>
+                          <option value="Extra-County">Extra-County Secondary School</option>
+                          <option value="National">National High School</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Course / Programme (Only for University, College/TVET, Special Needs) */}
+                  {formData.education_level !== 'secondary' && (
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        {formData.education_level === 'university'
+                          ? 'Degree Programme'
+                          : 'Course / Qualification Awarded'}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={
+                          formData.education_level === 'university'
+                            ? 'e.g. Bachelor of Education (Science)'
+                            : 'e.g. Diploma in Electrical Engineering'
+                        }
+                        value={formData.course_name}
+                        onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
+                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {/* Class / Form / Year of Study */}
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Year / Level of Study</label>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      {formData.education_level === 'secondary' ? 'Current Class / Form' : 'Year of Study'}
+                    </label>
                     <select
                       value={formData.year_of_study}
                       onChange={(e) => setFormData({ ...formData, year_of_study: e.target.value })}
                       className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
                     >
-                      <option value="Year 1">Year 1 / Form 1</option>
-                      <option value="Year 2">Year 2 / Form 2</option>
-                      <option value="Year 3">Year 3 / Form 3</option>
-                      <option value="Year 4">Year 4 / Form 4</option>
-                      <option value="Year 5">Year 5 / Final Year</option>
+                      {formData.education_level === 'secondary' ? (
+                        <>
+                          <option value="Form 1">Form 1</option>
+                          <option value="Form 2">Form 2</option>
+                          <option value="Form 3">Form 3</option>
+                          <option value="Form 4">Form 4 (KCSE Candidate)</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="Year 1">Year 1</option>
+                          <option value="Year 2">Year 2</option>
+                          <option value="Year 3">Year 3</option>
+                          <option value="Year 4">Year 4</option>
+                          <option value="Year 5">Year 5</option>
+                          <option value="Year 6">Year 6</option>
+                        </>
+                      )}
                     </select>
                   </div>
 
+                  {/* Term / Semester */}
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Semester / Term</label>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      {formData.education_level === 'secondary' ? 'Current Academic Term' : 'Semester / Term'}
+                    </label>
                     <select
                       value={formData.semester_term}
                       onChange={(e) => setFormData({ ...formData, semester_term: e.target.value })}
                       className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
                     >
-                      <option value="Semester 1">Semester 1 / Term 1</option>
-                      <option value="Semester 2">Semester 2 / Term 2</option>
-                      <option value="Semester 3">Semester 3 / Term 3</option>
+                      {formData.education_level === 'secondary' ? (
+                        <>
+                          <option value="Term 1">Term 1</option>
+                          <option value="Term 2">Term 2</option>
+                          <option value="Term 3">Term 3</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="Semester 1">Semester 1</option>
+                          <option value="Semester 2">Semester 2</option>
+                          <option value="Semester 3">Semester 3 / Trimester</option>
+                        </>
+                      )}
                     </select>
                   </div>
 
@@ -1086,12 +1246,20 @@ export default function ApplicantPortal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   
-                  {/* Doc 1: Student National ID */}
+                  {/* Doc 1: Student ID or Birth Certificate */}
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h5 className="font-bold text-slate-900">1. National ID / Birth Certificate</h5>
-                        <p className="text-[10px] text-slate-500">Front and back scan of student's identity document</p>
+                        <h5 className="font-bold text-slate-900">
+                          {formData.education_level === 'secondary'
+                            ? '1. Birth Certificate / NEMIS UPI'
+                            : '1. National ID Card'}
+                        </h5>
+                        <p className="text-[10px] text-slate-500">
+                          {formData.education_level === 'secondary'
+                            ? 'Student birth certificate, NEMIS slip or student ID'
+                            : "Front and back scan of student's official National ID card"}
+                        </p>
                       </div>
                       <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Mandatory</span>
                     </div>
@@ -1114,7 +1282,9 @@ export default function ApplicantPortal({
                     ) : (
                       <label className="border-2 border-dashed border-slate-300 hover:border-[#0B6B3A] rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-white">
                         <UploadCloud className="w-6 h-6 text-slate-400 mb-1" />
-                        <span className="font-bold text-slate-700 text-xs">Click to Browse / Upload ID</span>
+                        <span className="font-bold text-slate-700 text-xs">
+                          {formData.education_level === 'secondary' ? 'Click to Browse / Upload Birth Cert or ID' : 'Click to Browse / Upload National ID'}
+                        </span>
                         <span className="text-[10px] text-slate-400">PDF, JPG, PNG up to 5MB</span>
                         <input
                           type="file"
@@ -1130,8 +1300,16 @@ export default function ApplicantPortal({
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h5 className="font-bold text-slate-900">2. Official Stamped Fee Structure</h5>
-                        <p className="text-[10px] text-slate-500">Current semester/term fee invoice or statement</p>
+                        <h5 className="font-bold text-slate-900">
+                          {formData.education_level === 'secondary'
+                            ? '2. Stamped School Fee Statement'
+                            : '2. Official Stamped Fee Structure'}
+                        </h5>
+                        <p className="text-[10px] text-slate-500">
+                          {formData.education_level === 'secondary'
+                            ? 'Official term fees statement stamped by School Principal'
+                            : 'Current semester/term fee invoice or student ledger'}
+                        </p>
                       </div>
                       <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Mandatory</span>
                     </div>
@@ -1154,7 +1332,7 @@ export default function ApplicantPortal({
                     ) : (
                       <label className="border-2 border-dashed border-slate-300 hover:border-[#0B6B3A] rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-white">
                         <UploadCloud className="w-6 h-6 text-slate-400 mb-1" />
-                        <span className="font-bold text-slate-700 text-xs">Click to Browse / Upload Fee Structure</span>
+                        <span className="font-bold text-slate-700 text-xs">Click to Browse / Upload Fee Statement</span>
                         <span className="text-[10px] text-slate-400">PDF, JPG, PNG up to 5MB</span>
                         <input
                           type="file"
@@ -1166,12 +1344,20 @@ export default function ApplicantPortal({
                     )}
                   </div>
 
-                  {/* Doc 3: Admission Letter */}
+                  {/* Doc 3: Calling Letter or Admission Letter */}
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h5 className="font-bold text-slate-900">3. Admission Letter / Student ID</h5>
-                        <p className="text-[10px] text-slate-500">Official calling letter or valid student badge</p>
+                        <h5 className="font-bold text-slate-900">
+                          {formData.education_level === 'secondary'
+                            ? '3. Report Form / Calling Letter'
+                            : '3. Admission Letter / Student ID'}
+                        </h5>
+                        <p className="text-[10px] text-slate-500">
+                          {formData.education_level === 'secondary'
+                            ? 'Latest Term Report Form, Admission Calling Letter, or School ID'
+                            : 'Official university/college calling letter or student ID'}
+                        </p>
                       </div>
                       <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Mandatory</span>
                     </div>

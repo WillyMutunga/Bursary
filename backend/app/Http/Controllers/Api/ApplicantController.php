@@ -105,9 +105,12 @@ class ApplicantController extends Controller
             'village' => 'nullable|string',
             'institution_id' => 'nullable',
             'institution_name' => 'nullable|string',
+            'education_level' => 'nullable|string',
+            'school_type' => 'nullable|string',
             'admission_no' => 'required|string',
-            'course_name' => 'required|string',
+            'course_name' => 'nullable|string',
             'year_of_study' => 'nullable|string',
+            'semester_term' => 'nullable|string',
             'fees_payable' => 'required|numeric',
             'fees_paid' => 'required|numeric',
             'fee_balance' => 'required|numeric',
@@ -139,6 +142,10 @@ class ApplicantController extends Controller
             $validated['institution_id'] = $request->input('institution_id') ?: 1;
         }
         unset($validated['institution_name']);
+
+        if (empty($validated['course_name'])) {
+            $validated['course_name'] = ($request->input('education_level') === 'secondary') ? 'Secondary Education (KCSE / CBC)' : 'General Studies';
+        }
 
         $user = $request->user();
         $userId = $user ? $user->id : ($request->input('user_id') ?: 1);
