@@ -256,6 +256,10 @@ class ApplicantController extends Controller
             $appData['special_circumstances'] = trim($existingSpec . "\n" . implode("\n", $extraParentDetails));
         }
 
+        // Generate Official Application Number
+        $appCount = Application::where('cycle_id', $cycleId)->count() + 1;
+        $appNumber = 'CDF/BURS/2026/' . str_pad($appCount, 6, '0', STR_PAD_LEFT);
+
         try {
             $application = Application::create(array_merge($appData, [
                 'user_id' => $userId,
