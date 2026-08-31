@@ -14,17 +14,28 @@ if (!isset($_GET['secret']) || $_GET['secret'] !== $secretKey) {
     die('<h1>403 Forbidden</h1><p>Invalid or missing secret key.</p>');
 }
 
-// Locate Laravel autoload
-$autoloadPath = __DIR__ . '/../vendor/autoload.php';
-$appPath = __DIR__ . '/../bootstrap/app.php';
+// Locate Laravel autoload (checking both backend/ and root)
+$possiblePaths = [
+    __DIR__ . '/backend/vendor/autoload.php' => __DIR__ . '/backend/bootstrap/app.php',
+    __DIR__ . '/../vendor/autoload.php' => __DIR__ . '/../bootstrap/app.php',
+    __DIR__ . '/../backend/vendor/autoload.php' => __DIR__ . '/../backend/bootstrap/app.php',
+    __DIR__ . '/vendor/autoload.php' => __DIR__ . '/bootstrap/app.php',
+    __DIR__ . '/../bursary_backend/vendor/autoload.php' => __DIR__ . '/../bursary_backend/bootstrap/app.php',
+];
 
-if (!file_exists($autoloadPath)) {
-    $autoloadPath = __DIR__ . '/../bursary_backend/vendor/autoload.php';
-    $appPath = __DIR__ . '/../bursary_backend/bootstrap/app.php';
+$autoloadPath = null;
+$appPath = null;
+
+foreach ($possiblePaths as $auto => $appFile) {
+    if (file_exists($auto)) {
+        $autoloadPath = $auto;
+        $appPath = $appFile;
+        break;
+    }
 }
 
-if (!file_exists($autoloadPath)) {
-    die('<h1>Error</h1><p>Cannot find autoload.php at: ' . htmlspecialchars($autoloadPath) . '</p>');
+if (!$autoloadPath) {
+    die('<h1>Error</h1><p>Cannot find vendor/autoload.php. Checked:<br>' . implode('<br>', array_keys($possiblePaths)) . '</p>');
 }
 
 require $autoloadPath;
