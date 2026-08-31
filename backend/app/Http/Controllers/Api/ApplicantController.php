@@ -195,7 +195,12 @@ class ApplicantController extends Controller
             ->when($cycleId, fn($q) => $q->where('cycle_id', $cycleId))
             ->first();
 
-        if ($existingIdApp) {
+        $existingUserApp = $userId ? Application::where('user_id', $userId)
+            ->when($cycleId, fn($q) => $q->where('cycle_id', $cycleId))
+            ->first() : null;
+
+        // If the ID was already submitted by someone else, block it strictly
+        if ($existingIdApp && $existingIdApp->user_id != $userId) {
             return response()->json([
                 'success' => false,
                 'message' => "The ID Number '{$cleanNationalId}' has already been used to apply for a bursary under Application No: {$existingIdApp->application_no}. Each applicant ID is strictly unique and cannot be used more than once.",
@@ -203,19 +208,14 @@ class ApplicantController extends Controller
             ], 422);
         }
 
-        // Check if user already submitted
-        if ($userId) {
-            $existingUserApp = Application::where('user_id', $userId)
-                ->when($cycleId, fn($q) => $q->where('cycle_id', $cycleId))
-                ->first();
-
-            if ($existingUserApp) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "You have already submitted an active bursary application (No: {$existingUserApp->application_no}). Multiple applications are not permitted.",
-                    'existing_application' => $existingUserApp,
-                ], 422);
-            }
+        // If user already successfully completed their application (with all documents), prevent duplicates
+        $currentUserApp = $existingIdApp ?: $existingUserApp;
+        if ($currentUserApp && $currentUserApp->documents()->count() >= 3) {
+            return response()->json([
+                'success' => false,
+                'message' => "You have already submitted an active bursary application (No: {$currentUserApp->application_no}). Multiple applications are not permitted.",
+                'existing_application' => $currentUserApp,
+            ], 422);
         }
 
         // 2. Pluggable ID verification
@@ -257,29 +257,37 @@ class ApplicantController extends Controller
         }
 
         // Generate Official Application Number
+        // Generate Official Application Number if not already assigned
         $appCount = Application::where('cycle_id', $cycleId)->count() + 1;
         $appNumber = 'CDF/BURS/2026/' . str_pad($appCount, 6, '0', STR_PAD_LEFT);
 
+        $appPayload = array_merge($appData, [
+            'user_id' => $userId,
+            'cycle_id' => $cycleId,
+            'stage' => 'under_verification',
+            'id_verification_status' => $idVerification['status'],
+            'duplicate_risk' => $duplicateCheck['duplicate_risk'],
+            'duplicate_flag_reason' => $duplicateCheck['summary'],
+            'score_financial_need' => $scoring['score_financial_need'],
+            'score_vulnerability' => $scoring['score_vulnerability'],
+            'score_fee_burden' => $scoring['score_fee_burden'],
+            'score_education_need' => $scoring['score_education_need'],
+            'score_household' => $scoring['score_household'],
+            'score_previous_support' => $scoring['score_previous_support'],
+            'total_score' => $scoring['total_score'],
+            'recommended_amount' => $scoring['recommended_amount'],
+            'ocr_match_percentage' => 95,
+            'submitted_at' => now(),
+        ]);
+
         try {
-            $application = Application::create(array_merge($appData, [
-                'user_id' => $userId,
-                'cycle_id' => $cycleId,
-                'application_no' => $appNumber,
-                'stage' => 'under_verification',
-                'id_verification_status' => $idVerification['status'],
-                'duplicate_risk' => $duplicateCheck['duplicate_risk'],
-                'duplicate_flag_reason' => $duplicateCheck['summary'],
-                'score_financial_need' => $scoring['score_financial_need'],
-                'score_vulnerability' => $scoring['score_vulnerability'],
-                'score_fee_burden' => $scoring['score_fee_burden'],
-                'score_education_need' => $scoring['score_education_need'],
-                'score_household' => $scoring['score_household'],
-                'score_previous_support' => $scoring['score_previous_support'],
-                'total_score' => $scoring['total_score'],
-                'recommended_amount' => $scoring['recommended_amount'],
-                'ocr_match_percentage' => 95,
-                'submitted_at' => now(),
-            ]));
+            if ($currentUserApp) {
+                $currentUserApp->update($appPayload);
+                $application = $currentUserApp;
+            } else {
+                $appPayload['application_no'] = $appNumber;
+                $application = Application::create($appPayload);
+            }
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error("Application save failed: " . $e->getMessage());
             return response()->json([
@@ -288,7 +296,8 @@ class ApplicantController extends Controller
             ], 500);
         }
 
-        // Log ID Verification Record
+        // Log ID Verification Record (replace prior if retrying)
+        IdentityVerification::where('application_id', $application->id)->delete();
         IdentityVerification::create([
             'application_id' => $application->id,
             'national_id' => $validated['national_id'],
@@ -303,12 +312,12 @@ class ApplicantController extends Controller
             'verified_at' => now(),
         ]);
 
-        // Handle physical file uploads & supporting documents
+        // Handle physical file uploads & supporting documents (all types comply strictly with PostgreSQL enum)
         $fileConfigs = [
             'national_id_doc' => ['type' => 'id_card', 'title' => 'Applicant National ID / Birth Certificate'],
             'fee_structure_doc' => ['type' => 'fee_structure', 'title' => 'Current Fee Structure & Balance Statement'],
             'admission_letter_doc' => ['type' => 'admission_letter', 'title' => 'Official Institution Admission / Report Form'],
-            'guardian_id_doc' => ['type' => 'guardian_id', 'title' => 'Parent / Guardian Identification'],
+            'guardian_id_doc' => ['type' => 'id_card', 'title' => 'Parent / Guardian Identification'],
         ];
 
         $appFolder = 'documents/2026/' . str_replace('/', '_', $application->application_no);
@@ -329,6 +338,9 @@ class ApplicantController extends Controller
                 $fileSizeKb = rand(180, 420);
                 $originalName = $safeName;
             }
+
+            // Remove any existing copy of this document type on retry
+            Document::where('application_id', $application->id)->where('title', $d['title'])->delete();
 
             Document::create([
                 'application_id' => $application->id,
