@@ -1,0 +1,54 @@
+name: Automatic cPanel Deployment (GitHub Actions)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy to cPanel via FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚚 Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 🛠️ Install Frontend Dependencies & Build
+        run: |
+          cd frontend
+          npm install
+          npm run build
+          cp ../deploy_setup.php ./dist/deploy_setup.php || true
+
+      - name: 🚀 Deploy Frontend Build via FTP to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /
+          local-dir: ./frontend/dist/
+
+      - name: 📦 Deploy Backend via FTP to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /backend/
+          local-dir: ./backend/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/vendor/**
+            **/storage/logs/**
+            **/storage/framework/cache/**
+            **/storage/framework/sessions/**
+            **/storage/framework/views/**
+            **/.env
