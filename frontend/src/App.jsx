@@ -144,7 +144,7 @@ export default function App() {
               ? 'David Ochieng'
               : role === 'school'
               ? 'Dr. Mary Mutiso'
-              : 'Alex Kimani (Super Admin)',
+              : 'Willy (Super Admin)',
           role,
           designation:
             role === 'applicant'

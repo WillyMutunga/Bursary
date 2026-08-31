@@ -29,12 +29,7 @@ export const INITIAL_DATA = {
     { id: 8, name: "St. Francis Special Needs School", code: "STF-008", type: "special_needs", county: "Nairobi", bank_name: "Co-operative Bank", bank_account_no: "0110332211" },
   ],
   demoUsers: [
-    { id: 1, name: "Jane Wanjiku", role: "applicant", designation: "Applicant / Student", email: "applicant@ngcdf.go.ke", national_id: "39281744" },
-    { id: 2, name: "Peter Mwangi", role: "verification_officer", designation: "Senior Verification Officer", email: "officer@ngcdf.go.ke", national_id: "24567890" },
-    { id: 3, name: "Hon. Grace Njeri", role: "committee_member", designation: "Committee Member 004", email: "committee@ngcdf.go.ke", national_id: "18992345" },
-    { id: 4, name: "David Ochieng", role: "finance_officer", designation: "Finance & Disbursement Officer", email: "finance@ngcdf.go.ke", national_id: "22114455" },
-    { id: 5, name: "Dr. Mary Mutiso", role: "school_officer", designation: "Academic Registrar (UoN)", email: "school@uonbi.ac.ke", school_id: 1, national_id: "19876543" },
-    { id: 6, name: "Alex Kimani", role: "admin", designation: "Constituency Fund Manager", email: "admin@ngcdf.go.ke", national_id: "12345678" },
+    { id: 1, name: "Willy", role: "admin", designation: "Constituency Fund Manager / Super Admin", email: "admin@ngcdf.go.ke", national_id: "41354126" },
   ],
   applications: [],
   auditLogs: [],

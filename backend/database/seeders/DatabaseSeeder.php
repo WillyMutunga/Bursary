@@ -27,67 +27,22 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Roles & Users
-        $applicant = User::create([
-            'name' => 'John Kamau',
-            'email' => 'applicant@ngcdf.go.ke',
-            'phone' => '+254 712 345 678',
-            'role' => 'applicant',
-            'national_id' => '38492011',
-            'password' => Hash::make('password123'),
-            'designation' => 'Student / Bursary Applicant',
-        ]);
-
-        $officer = User::create([
-            'name' => 'Peter Mwangi',
-            'email' => 'officer@ngcdf.go.ke',
-            'phone' => '+254 722 987 654',
-            'role' => 'verification_officer',
-            'national_id' => '24567890',
-            'password' => Hash::make('password123'),
-            'designation' => 'Senior Verification Officer',
-        ]);
-
-        $committee = User::create([
-            'name' => 'Hon. Grace Njeri',
-            'email' => 'committee@ngcdf.go.ke',
-            'phone' => '+254 733 112 233',
-            'role' => 'committee_member',
-            'national_id' => '18992345',
-            'password' => Hash::make('password123'),
-            'designation' => 'NG-CDF Bursary Committee Member 004',
-        ]);
-
-        $finance = User::create([
-            'name' => 'David Ochieng',
-            'email' => 'finance@ngcdf.go.ke',
-            'phone' => '+254 701 445 566',
-            'role' => 'finance_officer',
-            'national_id' => '22114455',
-            'password' => Hash::make('password123'),
-            'designation' => 'NG-CDF Finance & Disbursement Officer',
-        ]);
-
-        $school = User::create([
-            'name' => 'Dr. Mary Mutiso',
-            'email' => 'school@uonbi.ac.ke',
-            'phone' => '+254 711 778 899',
-            'role' => 'school_officer',
-            'national_id' => '19876543',
-            'school_id' => 1,
-            'password' => Hash::make('password123'),
-            'designation' => 'Academic Registrar - UoN',
-        ]);
-
-        $admin = User::create([
-            'name' => 'Alex Kimani',
-            'email' => 'admin@ngcdf.go.ke',
-            'phone' => '+254 720 000 111',
-            'role' => 'admin',
-            'national_id' => '12345678',
-            'password' => Hash::make('password123'),
-            'designation' => 'Constituency Fund Manager',
-        ]);
+        // 1. Single Super Admin User (Willy / William#20)
+        // All staff roles (Verification, Committee, Finance, School) are created by Super Admin via User Management.
+        // Citizen applicants register themselves via Public Registration.
+        $superAdmin = User::updateOrCreate(
+            ['email' => 'admin@ngcdf.go.ke'],
+            [
+                'name' => 'Willy',
+                'email' => 'admin@ngcdf.go.ke',
+                'phone' => '+254 700 000 000',
+                'role' => 'admin',
+                'national_id' => '41354126',
+                'password' => Hash::make('William#20'),
+                'designation' => 'Constituency Fund Manager / Super Admin',
+                'is_active' => true,
+            ]
+        );
 
         // 2. Wards (Kibwezi West Constituency)
         $wards = [

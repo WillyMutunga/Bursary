@@ -72,7 +72,7 @@ class AdminController extends Controller
             module: 'Admin',
             recordId: (string)$cycle->id,
             newValues: ['is_active' => $newState, 'end_date' => $cycle->end_date],
-            userName: 'Alex Kimani (Super Admin)',
+            userName: $request->user() ? $request->user()->name : 'Willy (Super Admin)',
             userRole: 'admin'
         );
 
@@ -99,7 +99,7 @@ class AdminController extends Controller
             recordId: (string)$ward->id,
             oldValues: ['budget_allocation' => $oldBudget],
             newValues: ['budget_allocation' => $ward->budget_allocation],
-            userName: 'Alex Kimani (Super Admin)',
+            userName: $request->user() ? $request->user()->name : 'Willy (Super Admin)',
             userRole: 'admin'
         );
 
@@ -138,7 +138,7 @@ class AdminController extends Controller
             module: 'Admin',
             recordId: (string)$user->id,
             newValues: ['name' => $user->name, 'email' => $user->email, 'role' => $user->role],
-            userName: 'Alex Kimani (Super Admin)',
+            userName: $request->user() ? $request->user()->name : 'Willy (Super Admin)',
             userRole: 'admin'
         );
 
@@ -161,7 +161,7 @@ class AdminController extends Controller
             module: 'Admin',
             recordId: (string)$id,
             oldValues: ['name' => $userName, 'role' => $userRole],
-            userName: 'Alex Kimani (Super Admin)',
+            userName: $request->user() ? $request->user()->name : 'Willy (Super Admin)',
             userRole: 'admin'
         );
 
@@ -186,7 +186,7 @@ class AdminController extends Controller
             action: 'USER_PASSWORD_RESET',
             module: 'Admin',
             recordId: (string)$user->id,
-            userName: 'Alex Kimani (Super Admin)',
+            userName: $request->user() ? $request->user()->name : 'Willy (Super Admin)',
             userRole: 'admin'
         );
 

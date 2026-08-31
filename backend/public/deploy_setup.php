@@ -73,9 +73,33 @@ try {
     Artisan::call('migrate', ['--force' => true]);
     echo Artisan::output() . "\n";
 
-    echo "3. Running Database Seeders (php artisan db:seed --force)...\n";
-    Artisan::call('db:seed', ['--force' => true]);
-    echo Artisan::output() . "\n";
+    echo "3. Resetting Users & Seeding Single Super Admin...\n";
+    
+    // Clear all users
+    try {
+        DB::statement('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
+    } catch (\Exception $e) {
+        DB::table('users')->delete();
+    }
+
+    // Create Super Admin Willy
+    \App\Models\User::create([
+        'name' => 'Willy',
+        'email' => 'admin@ngcdf.go.ke',
+        'phone' => '+254 700 000 000',
+        'role' => 'admin',
+        'national_id' => '41354126',
+        'password' => \Illuminate\Support\Facades\Hash::make('William#20'),
+        'designation' => 'Constituency Fund Manager / Super Admin',
+        'is_active' => true,
+    ]);
+    echo "✓ Seeded Single Super Admin: Willy (Password: William#20)\n";
+    echo "✓ All other user accounts have been removed.\n";
+
+    // Seed wards & cycle if missing
+    if (\App\Models\Ward::count() === 0) {
+        Artisan::call('db:seed', ['--force' => true]);
+    }
 
     echo "4. Clearing & Optimizing Cache (config, route, cache)...\n";
     Artisan::call('config:clear');
@@ -84,8 +108,10 @@ try {
     echo "✓ Application caches cleared successfully.\n\n";
 
     echo "========================================================\n";
-    echo "🎉 SETUP COMPLETED SUCCESSFULLY!\n";
-    echo "Super Admin: admin@ngcdf.go.ke (Password: Admin#2026)\n";
+    echo "🎉 USER RESET & SUPER ADMIN INITIALIZATION COMPLETE!\n";
+    echo "Username: Willy\n";
+    echo "Password: William#20\n";
+    echo "Role: Constituency Fund Manager / Super Admin\n";
     echo "========================================================\n";
 
 } catch (\Exception $e) {
