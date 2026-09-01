@@ -265,29 +265,13 @@ export default function AuthScreen({
             </button>
           </div>
 
-          {/* MODE 1: Clean Sign In Tab */}
+          {/* MODE 1: Unified Universal Sign In Tab */}
           {mode === 'login' && (
             <div className="space-y-5 my-auto">
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <h3 className="text-2xl font-black text-[#0F172A]">
-                    {loginRoleType === 'applicant' ? 'Applicant Sign In' : 'Staff & Officer Sign In'}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLoginRoleType(loginRoleType === 'applicant' ? 'staff' : 'applicant');
-                      setErrorMessage('');
-                    }}
-                    className="text-[11px] font-bold text-[#0B6B3A] hover:underline"
-                  >
-                    {loginRoleType === 'applicant' ? '👔 Staff / Admin Login →' : '🎓 Student Login →'}
-                  </button>
-                </div>
+                <h3 className="text-2xl font-black text-[#0F172A]">Sign In to Portal</h3>
                 <p className="text-slate-500 text-xs mt-0.5">
-                  {loginRoleType === 'applicant'
-                    ? 'Applicants must sign in using their National ID or Birth Certificate Number only.'
-                    : 'Constituency officers, committee members, and admins sign in with your Staff Username or Email.'}
+                  Enter your National ID, Birth Certificate No, Username, or Email and password.
                 </p>
               </div>
 
@@ -299,33 +283,22 @@ export default function AuthScreen({
               )}
 
               <form onSubmit={handleLoginSubmit} className="space-y-4">
-                {/* Identifier Input */}
+                {/* Universal Identifier Input */}
                 <div>
                   <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1.5">
-                    {loginRoleType === 'applicant'
-                      ? 'NATIONAL ID / BIRTH CERTIFICATE ENTRY NO / NEMIS UPI'
-                      : 'OFFICIAL USERNAME / EMAIL ADDRESS'}
+                    NATIONAL ID / BIRTH CERTIFICATE NO / USERNAME / EMAIL
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
-                      placeholder={
-                        loginRoleType === 'applicant'
-                          ? 'e.g. 38291045 or BC-8492014 or H7K2M9'
-                          : 'e.g. Willy or admin@ngcdf.go.ke'
-                      }
+                      placeholder="e.g. 41354126 or Willy or BC-849201 or admin@ngcdf.go.ke"
                       value={formData.national_id}
                       onChange={(e) => setFormData({ ...formData, national_id: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0B6B3A] focus:border-transparent outline-none transition-all font-mono"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0B6B3A] focus:border-transparent outline-none transition-all"
                       required
                     />
                   </div>
-                  {loginRoleType === 'applicant' && (
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      💡 <strong>Students without National IDs:</strong> Enter your official Kenyan Birth Certificate Entry Number or NEMIS UPI.
-                    </p>
-                  )}
                 </div>
 
                 {/* Password Input */}
@@ -355,13 +328,13 @@ export default function AuthScreen({
                   </div>
                 </div>
 
-                {/* Submit Button */}
+                {/* Universal Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
                   className="w-full py-3.5 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-900/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
                 >
-                  {isLoading ? 'Authenticating...' : loginRoleType === 'applicant' ? 'Sign In as Student' : 'Sign In as Staff'}
+                  {isLoading ? 'Authenticating...' : 'Sign In to Portal'}
                   <ArrowRight className="w-4 h-4 text-[#D4A72C]" />
                 </button>
               </form>
