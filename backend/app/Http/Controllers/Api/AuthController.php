@@ -42,16 +42,24 @@ class AuthController extends Controller
             }
         })->first();
 
-        // Tolerant matching for Super Admin username typos (e.g. Willly with 3 L's vs Willy)
-        if (!$user && (strcasecmp($identifier, 'willly') === 0 || strcasecmp($identifier, 'willy') === 0)) {
-            $user = User::where('name', 'ILIKE', 'Willy')->orWhere('email', 'admin@ngcdf.go.ke')->first();
-        }
-
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials provided. Please verify your Username / Email / ID Number and Password.',
+                'message' => 'Invalid credentials provided. Please verify your Username / ID Number and Password.',
             ], 401);
+        }
+
+        // Strict Applicant Rule: Applicants can sign in ONLY with their National ID or Birth Certificate Number
+        if ($user->role === 'applicant') {
+            $matchedById = (strcasecmp(trim($user->national_id), $identifier) === 0)
+                || (!empty($cleanPhone) && strcasecmp(trim($user->national_id), $cleanPhone) === 0);
+
+            if (!$matchedById) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Applicants must sign in using their National ID or Birth Certificate Number only.',
+                ], 403);
+            }
         }
 
         $token = $user->createToken('bursary_auth_token')->plainTextToken;
