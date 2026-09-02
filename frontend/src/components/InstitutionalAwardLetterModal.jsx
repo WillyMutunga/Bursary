@@ -179,8 +179,6 @@ export default function InstitutionalAwardLetterModal({
                     <th className="p-2 border-r border-slate-300">Student Full Name</th>
                     <th className="p-2 border-r border-slate-300">Admission No</th>
                     <th className="p-2 border-r border-slate-300">Course / Programme</th>
-                    <th className="p-2 border-r border-slate-300">National ID</th>
-                    <th className="p-2 border-r border-slate-300">Sub-County Ward</th>
                     <th className="p-2 text-right">Awarded (KSh)</th>
                   </tr>
                 </thead>
@@ -191,15 +189,13 @@ export default function InstitutionalAwardLetterModal({
                       <td className="p-2 border-r border-slate-300 font-bold uppercase">{b.full_name}</td>
                       <td className="p-2 border-r border-slate-300 font-mono font-bold">{b.admission_no}</td>
                       <td className="p-2 border-r border-slate-300">{b.course_name || 'Academic Studies'}</td>
-                      <td className="p-2 border-r border-slate-300 font-mono">{b.national_id}</td>
-                      <td className="p-2 border-r border-slate-300">{b.ward?.name || 'Kibwezi West'}</td>
                       <td className="p-2 text-right font-mono font-black text-[#0B6B3A]">
                         KSh {Number(b.approved_amount || 0).toLocaleString()}
                       </td>
                     </tr>
                   ))}
                   <tr className="bg-slate-100 font-black border-t-2 border-slate-900">
-                    <td colSpan="6" className="p-2.5 text-right uppercase border-r border-slate-300">
+                    <td colSpan="4" className="p-2.5 text-right uppercase border-r border-slate-300">
                       TOTAL INSTITUTIONAL DISBURSEMENT AMOUNT:
                     </td>
                     <td className="p-2.5 text-right font-mono text-sm text-[#0B6B3A]">
