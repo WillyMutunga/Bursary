@@ -137,11 +137,24 @@ export default function InstitutionalAwardLetterModal({
   const totalAmount = currentBeneficiaries.reduce((sum, b) => sum + (Number(b.approved_amount) || 0), 0);
   const amountInWords = useMemo(() => numberToKenyanWords(totalAmount), [totalAmount]);
 
-  // Real institutional address lookup
-  const instDetail = KNOWN_INSTITUTION_DETAILS[activeInstitution.name] || {
+  // Real institutional address lookup:
+  // 1. Highest priority: Check if applicant(s) filled an official postal address during application!
+  const applicantPostalAddress = currentBeneficiaries.find(b => b.institution_postal_address || b.institution_address)?.institution_postal_address
+    || currentBeneficiaries.find(b => b.institution_postal_address || b.institution_address)?.institution_address;
+
+  const applicantCampus = currentBeneficiaries.find(b => b.institution_campus_branch || b.campus_branch)?.institution_campus_branch
+    || currentBeneficiaries.find(b => b.institution_campus_branch || b.campus_branch)?.campus_branch;
+
+  const directoryDetail = KNOWN_INSTITUTION_DETAILS[activeInstitution.name] || {
     address: activeInstitution.address || 'P.O. Box Accredited Postal Address, Kenya',
     location: activeInstitution.location || 'Accredited Campus',
     email: activeInstitution.email || 'finance@institution.ac.ke',
+  };
+
+  const instDetail = {
+    address: applicantPostalAddress || directoryDetail.address,
+    location: applicantCampus || directoryDetail.location,
+    email: directoryDetail.email,
   };
 
   // Dynamic Date Formatting (e.g. "2nd September 2026")

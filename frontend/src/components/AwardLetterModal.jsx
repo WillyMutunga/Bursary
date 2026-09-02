@@ -119,6 +119,12 @@ export default function AwardLetterModal({
             <p><strong>National ID / Reg:</strong> {app.national_id}</p>
             <p><strong>Admission No:</strong> {app.admission_no || 'UON/ENG/2024/045'}</p>
             <p><strong>Institution:</strong> {app.institution?.name || app.institution_name || 'University of Nairobi (UoN)'}</p>
+            {(app.institution_postal_address || app.institution_address) && (
+              <p><strong>Institution Postal Address:</strong> <span className="font-medium text-slate-800">{app.institution_postal_address || app.institution_address}</span></p>
+            )}
+            {(app.institution_campus_branch || app.campus_branch) && (
+              <p><strong>Campus / Branch:</strong> <span className="font-medium text-slate-800">{app.institution_campus_branch || app.campus_branch}</span></p>
+            )}
           </div>
 
           {/* Subject Line */}
@@ -145,7 +151,7 @@ export default function AwardLetterModal({
               <strong>TERMS AND CONDITIONS OF GRANT:</strong>
             </p>
             <ul className="list-disc pl-5 space-y-1 text-slate-700 text-[11px]">
-              <li>This bursary grant is non-transferable and is disbursed strictly via direct Electronic Funds Transfer (EFT) / Cheque to your learning institution: <strong>{app.institution?.name || 'University of Nairobi'}</strong>.</li>
+              <li>This bursary grant is non-transferable and is disbursed strictly via direct Electronic Funds Transfer (EFT) / Cheque to your learning institution: <strong>{app.institution?.name || app.institution_name || 'University of Nairobi'}</strong>{(app.institution_postal_address || app.institution_address) ? ` (${app.institution_postal_address || app.institution_address})` : ''}.</li>
               <li>The awarded amount must be credited solely towards your tuition fee account for the 2026/2027 Academic Year.</li>
               <li>Present this verified letter together with your Student ID card to the institution bursar for fee ledger crediting.</li>
             </ul>

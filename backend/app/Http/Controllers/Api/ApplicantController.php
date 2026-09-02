@@ -108,6 +108,8 @@ class ApplicantController extends Controller
             'village' => 'nullable|string',
             'institution_id' => 'nullable',
             'institution_name' => 'nullable|string',
+            'institution_postal_address' => 'nullable|string',
+            'institution_campus_branch' => 'nullable|string',
             'education_level' => 'nullable|string',
             'school_type' => 'nullable|string',
             'admission_no' => 'required|string',

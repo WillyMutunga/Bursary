@@ -160,6 +160,18 @@ export default function ApplicationDossierModal({ isOpen, onClose, application }
                 <span className="text-slate-500 block text-[10px]">Admission / Reg No:</span>
                 <strong className="font-mono text-slate-900">{app.admission_no || 'UON/ENG/2024/045'}</strong>
               </div>
+              {(app.institution_postal_address || app.institution_address) && (
+                <div className="sm:col-span-2">
+                  <span className="text-slate-500 block text-[10px]">Institution Postal Address:</span>
+                  <span className="font-medium text-slate-800">{app.institution_postal_address || app.institution_address}</span>
+                </div>
+              )}
+              {(app.institution_campus_branch || app.campus_branch) && (
+                <div>
+                  <span className="text-slate-500 block text-[10px]">Campus / Branch:</span>
+                  <span className="font-medium text-slate-800">{app.institution_campus_branch || app.campus_branch}</span>
+                </div>
+              )}
               <div className="sm:col-span-2">
                 <span className="text-slate-500 block text-[10px]">Course / Programme of Study:</span>
                 <strong className="text-slate-900">{app.course_name || 'Bachelor of Science'}</strong>

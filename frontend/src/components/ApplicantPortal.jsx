@@ -91,6 +91,8 @@ export default function ApplicantPortal({
     school_classification: 'Sub-County', // 'Sub-County', 'County', 'Extra-County', 'National'
     institution_id: 1,
     institution_name: '',
+    institution_postal_address: '',
+    institution_campus_branch: '',
     admission_no: '',
     course_name: '',
     year_of_study: 'Form 1',
@@ -1193,6 +1195,40 @@ export default function ApplicantPortal({
                     />
                   </div>
 
+                  {/* Institution Postal Address */}
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>Institution Official Postal Address (P.O. Box)</span>
+                      <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        Reflects on Award Letter
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. P.O. Box 43844 - 00100, Nairobi or P.O. Box 128 - 90137, Kibwezi"
+                      value={formData.institution_postal_address}
+                      onChange={(e) => setFormData({ ...formData, institution_postal_address: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                    />
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      This address will be officially printed on your institutional transmittal schedule and individual award letter.
+                    </span>
+                  </div>
+
+                  {/* Campus / Branch / Location */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Campus / Branch / Town
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Main Campus, Parklands, Kibwezi Town"
+                      value={formData.institution_campus_branch}
+                      onChange={(e) => setFormData({ ...formData, institution_campus_branch: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                    />
+                  </div>
+
                   {/* Secondary School Category & Level (Only for Secondary) */}
                   {formData.education_level === 'secondary' && (
                     <>
@@ -2102,6 +2138,14 @@ export default function ApplicantPortal({
                     <div>
                       <span className="text-slate-400">Admission No:</span>
                       <p className="font-mono font-bold text-slate-900">{formData.admission_no}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Institution:</span>
+                      <p className="font-bold text-slate-900 truncate">{formData.institution_name || 'Learning Institution'}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Postal Address:</span>
+                      <p className="font-medium text-slate-800 truncate">{formData.institution_postal_address || 'P.O. Box Accredited'}</p>
                     </div>
                     <div>
                       <span className="text-slate-400">Fee Balance:</span>

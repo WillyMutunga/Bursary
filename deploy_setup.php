@@ -131,6 +131,17 @@ try {
         ]
     );
 
+    // Ensure columns exist on applications table
+    if (\Illuminate\Support\Facades\Schema::hasTable('applications')) {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('applications', 'institution_postal_address')) {
+            \Illuminate\Support\Facades\Schema::table('applications', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->string('institution_postal_address')->nullable();
+                $table->string('institution_campus_branch')->nullable();
+            });
+            echo "✓ Added columns institution_postal_address and institution_campus_branch to applications table.\n";
+        }
+    }
+
     if ($applicant) {
         \App\Models\Application::updateOrCreate(
             ['application_no' => 'CDF/BURS/2026/000001'],
@@ -147,6 +158,8 @@ try {
                 'admission_no' => 'P01/0018/2022',
                 'course_name' => 'BSC COMPUTER SCIENCE',
                 'year_of_study' => 'Year 2',
+                'institution_postal_address' => 'P.O. Box 43844 - 00100, Nairobi',
+                'institution_campus_branch' => 'Main Campus - Along Thika Superhighway',
                 'fees_payable' => 65000.00,
                 'fees_paid' => 40000.00,
                 'fee_balance' => 25000.00,
@@ -159,7 +172,7 @@ try {
                 'guardian_monthly_income' => 15000.00,
             ]
         );
-        echo "✓ Application CDF/BURS/2026/000001 verified in database.\n";
+        echo "✓ Application CDF/BURS/2026/000001 verified with Kenyatta University postal address in database.\n";
     }
 
     echo "\n5. Clearing application caches...\n";
