@@ -95,11 +95,26 @@ try {
     // Clean up any extra dummy staff accounts if they exist
     User::whereIn('email', [
         'verification@ngcdf.go.ke',
-        'committee@ngcdf.go.ke',
         'finance@ngcdf.go.ke',
         'school@ngcdf.go.ke',
     ])->delete();
-    echo "✓ Cleaned dummy accounts. Only original user accounts remain.\n";
+
+    echo "3. Ensuring Committee Member Christine Mbatha (ID: 12345678)...\n";
+    $christine = User::updateOrCreate(
+        ['national_id' => '12345678'],
+        [
+            'name' => 'Christine Mbatha',
+            'email' => 'committee@ngcdf.go.ke',
+            'phone' => '+254 700 000 000',
+            'role' => 'committee_member',
+            'national_id' => '12345678',
+            'password' => Hash::make('William#20'),
+            'designation' => 'Constituency Bursary Committee Member',
+            'ward_id' => 1,
+            'is_active' => true,
+        ]
+    );
+    echo "✓ Committee Member Verified: Christine Mbatha (ID: 12345678, committee@ngcdf.go.ke)\n\n";
 
     echo "\n4. Ensuring Baseline Constituency Bursary Application...\n";
     $applicant = User::where('national_id', '41354125')->first();

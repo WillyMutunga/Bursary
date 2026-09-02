@@ -47,19 +47,27 @@ Route::prefix('public')->group(function () {
             ], 500);
         }
     });
-    Route::get('/clean-users', function () {
-        // Delete any added dummy users
-        \App\Models\User::whereIn('email', [
-            'verification@ngcdf.go.ke',
-            'committee@ngcdf.go.ke',
-            'finance@ngcdf.go.ke',
-            'school@ngcdf.go.ke',
-        ])->delete();
+    Route::get('/restore-user', function () {
+        $user = \App\Models\User::updateOrCreate(
+            ['national_id' => '12345678'],
+            [
+                'name' => 'Christine Mbatha',
+                'email' => 'committee@ngcdf.go.ke',
+                'phone' => '+254 700 000 000',
+                'role' => 'committee_member',
+                'national_id' => '12345678',
+                'password' => \Illuminate\Support\Facades\Hash::make('William#20'),
+                'designation' => 'Constituency Bursary Committee Member',
+                'ward_id' => 1,
+                'is_active' => true,
+            ]
+        );
 
         return response()->json([
             'success' => true,
-            'message' => 'Cleaned dummy users. Only original user accounts remain.',
-            'users' => \App\Models\User::select('id', 'name', 'email', 'role', 'national_id')->get(),
+            'message' => 'Christine Mbatha (Committee Member, ID: 12345678) restored successfully.',
+            'user' => $user,
+            'total_users' => \App\Models\User::count(),
         ]);
     });
 });

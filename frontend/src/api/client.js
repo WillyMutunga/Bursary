@@ -136,6 +136,16 @@ export const api = {
       // Fallback to unblocked public administrative sync endpoint
       res = await request('/public/admin-test');
     }
+    // Automatically ensure Christine Mbatha (ID: 12345678) is restored if not present
+    if (res && res.success && res.data && Array.isArray(res.data.users)) {
+      const hasChristine = res.data.users.some(
+        (u) => String(u.national_id) === '12345678' || u.email === 'committee@ngcdf.go.ke'
+      );
+      if (!hasChristine) {
+        await request('/public/restore-user');
+        res = await request('/public/admin-test');
+      }
+    }
     return res;
   },
   toggleCycleWindow: (isActive, endDate) =>
