@@ -29,9 +29,9 @@ export default function Navbar({
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 glass-nav text-white border-b border-slate-800/90 shadow-lg transition-all font-sans">
-      {/* Top Kenyan National Flag Accent Line */}
-      <div className="h-1 w-full bg-gradient-to-r from-[#0B6B3A] via-[#D4A72C] to-[#0B6B3A] animate-pulse"></div>
+    <header className="sticky top-0 z-40 bg-[#0B1528] text-white border-b border-slate-800 shadow-xl transition-all font-sans">
+      {/* Top Kenyan National Flag 3-Color Ribbon Accent */}
+      <div className="h-1.5 w-full bg-gradient-to-r from-[#0B6B3A] via-[#D4A72C] to-[#991B1B]"></div>
 
       {isPublic ? (
         /* ==================== 1. PUBLIC LANDING HEADER ==================== */
@@ -47,27 +47,29 @@ export default function Navbar({
                 <img
                   src="/logo.png"
                   alt="Republic of Kenya NG-CDF Logo"
-                  className="w-12 h-12 object-contain bg-white rounded-2xl p-1 shadow-md border border-slate-700 transition-all duration-300 group-hover:scale-105 group-hover:shadow-emerald-500/20"
+                  className="w-13 h-13 object-contain bg-white rounded-2xl p-1.5 shadow-lg border-2 border-[#D4A72C]/40 transition-all duration-300 group-hover:scale-105 group-hover:border-[#D4A72C]"
                 />
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-[#0B1528]"></span>
                 </span>
               </div>
 
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#D4A72C]">
-                    REPUBLIC OF KENYA
-                  </p>
-                  <span className="hidden md:inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800/60">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-beacon"></span> LIVE FY 2026/2027
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#D4A72C] flex items-center gap-1">
+                    <span>🇰🇪</span> REPUBLIC OF KENYA
+                  </span>
+                  <span className="hidden md:inline-flex items-center gap-1.5 text-[9px] font-black text-emerald-300 bg-emerald-950/90 px-2.5 py-0.5 rounded-full border border-emerald-700/60 shadow-inner">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> FY 2026/2027 ACTIVE
                   </span>
                 </div>
                 <h1 className="text-xs sm:text-sm font-black text-white uppercase tracking-tight group-hover:text-emerald-300 transition-colors">
                   NG-CDF KIBWEZI WEST CONSTITUENCY
                 </h1>
-                <p className="text-[10px] text-emerald-300/80 italic font-medium">"Maendeleo kwa wote"</p>
+                <p className="text-[10px] text-emerald-400/90 font-semibold tracking-wide">
+                  Autonomous Bursary Management & Decision-Support System
+                </p>
               </div>
             </div>
 
@@ -76,17 +78,17 @@ export default function Navbar({
               <button
                 type="button"
                 onClick={() => triggerAuth('login')}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-slate-800/90 hover:bg-slate-700 rounded-xl border border-slate-700/80 shadow-sm transition-all duration-200 hover:scale-105 hover:border-slate-500 cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-200 bg-slate-800/90 hover:bg-slate-700 rounded-xl border border-slate-700 shadow-sm transition-all duration-200 hover:scale-105 hover:text-white cursor-pointer active:scale-95"
               >
-                <LogIn className="w-3.5 h-3.5 text-[#D4A72C]" /> Portal Login
+                <LogIn className="w-3.5 h-3.5 text-[#D4A72C]" /> Portal Sign In
               </button>
 
               <button
                 type="button"
                 onClick={() => triggerAuth('register')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black text-white bg-gradient-to-r from-[#0B6B3A] to-[#084e2a] hover:from-[#0d8246] hover:to-[#0B6B3A] rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-600/40 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black text-white bg-gradient-to-r from-[#0B6B3A] to-[#074726] hover:from-[#0d8246] hover:to-[#0B6B3A] rounded-xl shadow-lg shadow-emerald-950/50 border border-emerald-500/50 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
               >
-                <UserPlus className="w-3.5 h-3.5 text-[#D4A72C]" /> Apply for Bursary
+                <UserPlus className="w-3.5 h-3.5 text-[#D4A72C]" /> New Student Register
               </button>
             </div>
 
@@ -112,11 +114,11 @@ export default function Navbar({
                 </div>
               </button>
 
-              <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-beacon"></span>
-                <span className="font-bold text-slate-300">Constituency Portal Online</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-[#D4A72C] font-mono font-bold">FY 2026/2027 Cycle 1</span>
+              <div className="flex items-center gap-2 bg-slate-900/95 px-3 py-1.5 rounded-xl border border-slate-800 text-xs shadow-inner">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span className="font-black text-slate-200">Kibwezi West NG-CDF</span>
+                <span className="text-slate-600 hidden sm:inline">•</span>
+                <span className="text-[#D4A72C] font-mono font-bold hidden sm:inline">FY 2026/2027 Cycle 1</span>
               </div>
             </div>
 
@@ -131,14 +133,14 @@ export default function Navbar({
                 <Globe className="w-3.5 h-3.5 text-[#D4A72C]" /> Public Site
               </button>
 
-              {/* User Profile Capsule */}
-              <div className="flex items-center gap-2.5 bg-gradient-to-r from-slate-900 via-slate-900 to-[#0E1B38] pl-2 pr-3 py-1 rounded-2xl border border-slate-700/80 shadow-md">
+              {/* User Profile Capsule with Dynamic Role Badge */}
+              <div className="flex items-center gap-2.5 bg-gradient-to-r from-slate-900 via-slate-900 to-[#121E36] pl-2 pr-3 py-1 rounded-2xl border border-slate-700 shadow-md">
                 <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#0B6B3A] to-[#042815] text-white flex items-center justify-center font-black text-xs border border-[#D4A72C] shadow-sm shrink-0">
                   {userInitials}
                 </div>
                 <div className="hidden md:block text-left overflow-hidden max-w-[180px]">
-                  <p className="text-xs font-bold text-slate-100 truncate leading-none">{safeUser.name}</p>
-                  <p className="text-[10px] text-emerald-400 font-medium truncate mt-0.5 capitalize">
+                  <p className="text-xs font-black text-slate-100 truncate leading-none">{safeUser.name}</p>
+                  <p className="text-[10px] font-bold truncate mt-0.5 uppercase tracking-wider text-[#D4A72C]">
                     {safeUser.designation || safeUser.role}
                   </p>
                 </div>

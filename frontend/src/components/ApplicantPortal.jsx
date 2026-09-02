@@ -655,31 +655,99 @@ export default function ApplicantPortal({
                 </div>
               </div>
 
-              {/* Application Timeline */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
-                  Application Timeline
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 text-xs">
-                  <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-950">
-                    <span className="font-bold block">1. Submitted</span>
-                    <span className="text-[11px] text-emerald-800">✓ Application received</span>
+              {/* Application Lifecycle Pipeline */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-black text-[#0F172A] uppercase tracking-wider flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-[#0B6B3A]" /> Live Application Lifecycle Pipeline
+                  </h4>
+                  <span className="text-[10px] font-bold text-slate-400 font-mono">
+                    Ref: {displayApp.application_no}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
+                  {/* Stage 1 */}
+                  <div className="p-3.5 bg-emerald-50/80 border-2 border-emerald-400/80 rounded-2xl text-emerald-950 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-black text-xs text-emerald-900">1. Submitted</span>
+                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                    </div>
+                    <span className="text-[11px] text-emerald-800 font-medium">Application Recorded</span>
                   </div>
-                  <div className={`p-3 rounded-xl border ${displayApp.stage !== 'submitted' ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                    <span className="font-bold block">2. Verification</span>
-                    <span className="text-[11px]">{displayApp.stage !== 'submitted' ? '✓ Documents in review' : '○ Pending'}</span>
+
+                  {/* Stage 2 */}
+                  <div className={`p-3.5 rounded-2xl border-2 transition-all relative overflow-hidden ${
+                    displayApp.stage !== 'submitted'
+                      ? 'bg-emerald-50/80 border-emerald-400/80 text-emerald-950 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-black text-xs">2. Verification</span>
+                      {displayApp.stage !== 'submitted' ? (
+                        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                      )}
+                    </div>
+                    <span className="text-[11px] font-medium">
+                      {displayApp.stage !== 'submitted' ? 'ID & Docs Verified' : 'In Verification Queue'}
+                    </span>
                   </div>
-                  <div className={`p-3 rounded-xl border ${isCommitteeReview || isApproved ? 'bg-purple-50 border-purple-300 text-purple-950' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                    <span className="font-bold block">3. Committee Review</span>
-                    <span className="text-[11px]">{isApproved ? '✓ Evaluated' : isCommitteeReview ? '● In Deliberation' : '○ Awaiting queue'}</span>
+
+                  {/* Stage 3 */}
+                  <div className={`p-3.5 rounded-2xl border-2 transition-all relative overflow-hidden ${
+                    isApproved
+                      ? 'bg-emerald-50/80 border-emerald-400/80 text-emerald-950 shadow-sm'
+                      : isCommitteeReview
+                      ? 'bg-purple-50 border-purple-400 text-purple-950 ring-2 ring-purple-200 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-black text-xs">3. Committee</span>
+                      {isApproved ? (
+                        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                      ) : isCommitteeReview ? (
+                        <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping"></span>
+                      ) : null}
+                    </div>
+                    <span className="text-[11px] font-medium">
+                      {isApproved ? 'Deliberation Complete' : isCommitteeReview ? 'In Deliberation' : 'Awaiting Review'}
+                    </span>
                   </div>
-                  <div className={`p-3 rounded-xl border ${isApproved ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                    <span className="font-bold block">4. Approved</span>
-                    <span className="text-[11px]">{isApproved ? '✓ Award Letter Ready' : '○ Awaiting allocation'}</span>
+
+                  {/* Stage 4 */}
+                  <div className={`p-3.5 rounded-2xl border-2 transition-all relative overflow-hidden ${
+                    isApproved
+                      ? 'bg-emerald-50/80 border-emerald-400/80 text-emerald-950 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-black text-xs">4. Approved</span>
+                      {isApproved && (
+                        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                      )}
+                    </div>
+                    <span className="text-[11px] font-medium">
+                      {isApproved ? 'Grant Letter Ready' : 'Pending Allocation'}
+                    </span>
                   </div>
-                  <div className={`p-3 rounded-xl border ${displayApp.stage === 'paid' ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                    <span className="font-bold block">5. Paid</span>
-                    <span className="text-[11px]">{displayApp.stage === 'paid' ? '✓ EFT Disbursed' : '○ Batch EFT pending'}</span>
+
+                  {/* Stage 5 */}
+                  <div className={`p-3.5 rounded-2xl border-2 transition-all relative overflow-hidden ${
+                    displayApp.stage === 'paid'
+                      ? 'bg-emerald-50/80 border-emerald-400/80 text-emerald-950 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-black text-xs">5. Disbursed</span>
+                      {displayApp.stage === 'paid' && (
+                        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                      )}
+                    </div>
+                    <span className="text-[11px] font-medium">
+                      {displayApp.stage === 'paid' ? 'Cheque / EFT Sent' : 'Awaiting EFT Batch'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -865,32 +933,49 @@ export default function ApplicantPortal({
             </div>
           )}
 
-          {/* 4-Step Progress Indicator */}
-          <div className="grid grid-cols-4 gap-2 pb-8 mb-8 border-b border-slate-200">
-            {wizardSteps.map((step) => {
-              const isCurrent = currentStep === step.num;
-              const isDone = currentStep > step.num;
-              return (
-                <div
-                  key={step.num}
-                  onClick={() => setCurrentStep(step.num)}
-                  className={`p-3 rounded-2xl border text-center cursor-pointer transition-all ${
-                    isCurrent
-                      ? 'bg-emerald-50 border-[#0B6B3A] text-[#0B6B3A] shadow-sm'
-                      : isDone
-                      ? 'bg-slate-50 border-emerald-200 text-slate-700'
-                      : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}
-                >
-                  <div className={`w-6 h-6 rounded-full mx-auto flex items-center justify-center text-xs font-black ${
-                    isCurrent ? 'bg-[#0B6B3A] text-white' : isDone ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'
-                  }`}>
-                    {isDone ? '✓' : step.num}
-                  </div>
-                  <span className="text-[11px] font-bold block mt-1.5 truncate">{step.title}</span>
-                </div>
-              );
-            })}
+          {/* 4-Step Connected Progress Stepper */}
+          <div className="relative mb-10 pb-4 border-b border-slate-200">
+            {/* Background connecting track */}
+            <div className="hidden sm:block absolute top-5 left-12 right-12 h-1 bg-slate-200 -translate-y-1/2 rounded-full z-0"></div>
+            {/* Active connecting fill */}
+            <div
+              className="hidden sm:block absolute top-5 left-12 h-1 bg-gradient-to-r from-[#0B6B3A] via-[#0B6B3A] to-[#D4A72C] -translate-y-1/2 rounded-full transition-all duration-500 z-0"
+              style={{ width: `${((currentStep - 1) / 3) * 80}%` }}
+            ></div>
+
+            <div className="relative z-10 grid grid-cols-4 gap-2 sm:gap-4">
+              {wizardSteps.map((step) => {
+                const isCurrent = currentStep === step.num;
+                const isDone = currentStep > step.num;
+                return (
+                  <button
+                    key={step.num}
+                    type="button"
+                    onClick={() => setCurrentStep(step.num)}
+                    className="flex flex-col items-center group cursor-pointer focus:outline-none"
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs transition-all duration-300 shadow-sm ${
+                        isCurrent
+                          ? 'bg-[#0B6B3A] text-white ring-4 ring-emerald-200 scale-110 shadow-emerald-900/20 font-mono'
+                          : isDone
+                          ? 'bg-emerald-600 text-white hover:scale-105'
+                          : 'bg-white text-slate-400 border-2 border-slate-300 group-hover:border-slate-400'
+                      }`}
+                    >
+                      {isDone ? <Check className="w-5 h-5 stroke-[3]" /> : step.num}
+                    </div>
+                    <span
+                      className={`text-[11px] font-bold mt-2 text-center transition-colors max-w-[120px] truncate ${
+                        isCurrent ? 'text-[#0B6B3A] font-black' : isDone ? 'text-slate-800' : 'text-slate-400'
+                      }`}
+                    >
+                      {step.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <form onSubmit={handleWizardSubmit} className="space-y-6 text-xs">
@@ -2088,23 +2173,29 @@ export default function ApplicantPortal({
             )}
 
             {/* Stepper Navigation Buttons */}
-            <div className="pt-6 border-t border-slate-200 flex justify-between items-center">
+            <div className="pt-6 border-t border-slate-200 flex justify-between items-center sticky bottom-0 bg-white/95 backdrop-blur-md py-4 -mx-6 px-6 sm:-mx-10 sm:px-10 rounded-b-3xl shadow-lg shadow-slate-200/50 z-20 transition-all">
               <button
                 type="button"
                 onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
                 disabled={currentStep === 1}
-                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl disabled:opacity-40 transition-colors"
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl disabled:opacity-40 transition-all hover:scale-105 cursor-pointer disabled:cursor-not-allowed text-xs flex items-center gap-1.5"
               >
-                Previous
+                ← Previous
               </button>
+
+              <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500">
+                <span className="w-2 h-2 rounded-full bg-[#0B6B3A]"></span>
+                <span>Stage {currentStep} of 4:</span>
+                <span className="text-[#0B6B3A] font-bold">{wizardSteps[currentStep - 1]?.title}</span>
+              </div>
 
               {currentStep < 4 && (
                 <button
                   type="button"
                   onClick={() => setCurrentStep(Math.min(4, currentStep + 1))}
-                  className="px-6 py-2.5 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                  className="px-6 py-2.5 bg-gradient-to-r from-[#0B6B3A] to-[#084e2a] hover:from-[#0d8246] hover:to-[#0B6B3A] text-white font-bold rounded-xl shadow-md shadow-emerald-900/20 transition-all hover:scale-105 flex items-center gap-2 cursor-pointer text-xs"
                 >
-                  Next Step ({currentStep + 1}/4) <ArrowRight className="w-4 h-4" />
+                  Continue to Step {currentStep + 1} <ArrowRight className="w-4 h-4 text-[#D4A72C]" />
                 </button>
               )}
             </div>

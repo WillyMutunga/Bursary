@@ -340,51 +340,67 @@ export default function SuperAdminPortal({
         </div>
       )}
 
-      {/* 2. REFINED KPI CARDS */}
+      {/* 2. REFINED KPI METRIC SUITE */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 hover-card-lift">
+        {/* Card 1: Staff */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-2.5 transition-all duration-200 hover:shadow-md hover:border-purple-300 group">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Registered Staff</span>
-            <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
-              <Users className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Registered Staff</span>
+            <div className="w-8 h-8 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-200/60 shadow-inner group-hover:scale-110 transition-transform">
+              <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{liveStats.total_users || usersList.length}</p>
-          <span className="text-[10px] text-purple-700 font-bold block">Active Database Accounts</span>
+          <p className="text-3xl font-black text-slate-900 tracking-tight">{liveStats.total_users || usersList.length}</p>
+          <div className="flex items-center gap-1.5 text-[10px] text-purple-700 font-bold bg-purple-50/80 px-2 py-0.5 rounded-lg w-fit">
+            <span>●</span> Active Staff Accounts
+          </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 hover-card-lift">
+        {/* Card 2: Applications */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-2.5 transition-all duration-200 hover:shadow-md hover:border-blue-300 group">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Applications</span>
-            <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
-              <FileText className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Applications</span>
+            <div className="w-8 h-8 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200/60 shadow-inner group-hover:scale-110 transition-transform">
+              <FileText className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{liveStats.total_applications}</p>
-          <span className="text-[10px] text-emerald-600 font-bold block">{liveStats.approved_applications} Awards Approved</span>
+          <p className="text-3xl font-black text-slate-900 tracking-tight">{liveStats.total_applications}</p>
+          <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg w-fit">
+            <span>✓</span> {liveStats.approved_applications} Awards Approved
+          </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 hover-card-lift">
+        {/* Card 3: Wards */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-2.5 transition-all duration-200 hover:shadow-md hover:border-emerald-300 group">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Constituency Wards</span>
-            <div className="w-7 h-7 rounded-xl bg-emerald-50 text-[#0B6B3A] flex items-center justify-center">
-              <MapPin className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Electoral Wards</span>
+            <div className="w-8 h-8 rounded-2xl bg-emerald-50 text-[#0B6B3A] flex items-center justify-center border border-emerald-200/60 shadow-inner group-hover:scale-110 transition-transform">
+              <MapPin className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{liveWards.length}</p>
-          <span className="text-[10px] text-slate-500 block">Kibwezi West Wards</span>
+          <p className="text-3xl font-black text-slate-900 tracking-tight">{liveWards.length}</p>
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-lg w-fit">
+            <span>🏛️</span> Kibwezi West Wards
+          </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 hover-card-lift">
+        {/* Card 4: Funds */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-2.5 transition-all duration-200 hover:shadow-md hover:border-amber-300 group">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Funds Committed</span>
-            <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
-              <DollarSign className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Funds Committed</span>
+            <div className="w-8 h-8 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200/60 shadow-inner group-hover:scale-110 transition-transform">
+              <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-xl font-black font-mono text-[#0B6B3A]">KSh {totalAllocated.toLocaleString()}</p>
-          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-[#0B6B3A] rounded-full" style={{ width: `${Math.min(budgetUtilization, 100)}%` }}></div>
+          <p className="text-2xl font-black font-mono text-[#0B6B3A] tracking-tight">KSh {totalAllocated.toLocaleString()}</p>
+          <div className="space-y-1">
+            <div className="flex justify-between text-[9px] font-bold text-slate-500 font-mono">
+              <span>Budget Utilized</span>
+              <span>{budgetUtilization}%</span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#0B6B3A] to-[#D4A72C] rounded-full transition-all duration-500" style={{ width: `${Math.min(budgetUtilization, 100)}%` }}></div>
+            </div>
           </div>
         </div>
       </div>
