@@ -101,7 +101,7 @@ try {
 
     echo "3. Ensuring Committee Member Christine Mbatha (ID: 12345678)...\n";
     $christine = User::updateOrCreate(
-        ['national_id' => '12345678'],
+        ['email' => 'committee@ngcdf.go.ke'],
         [
             'name' => 'Christine Mbatha',
             'email' => 'committee@ngcdf.go.ke',
