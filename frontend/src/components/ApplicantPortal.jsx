@@ -4,7 +4,7 @@ import {
   UploadCloud, CheckSquare, Send, CheckCircle2, AlertCircle,
   FileText, Download, Clock, ArrowRight, ArrowLeft, Sparkles,
   RefreshCw, QrCode, Building2, MapPin, Phone, Mail, FileCheck,
-  PlusCircle, AlertTriangle, Paperclip, Check, Trash2, Eye
+  PlusCircle, AlertTriangle, Paperclip, Check, Trash2, Eye, Activity
 } from 'lucide-react';
 import { api } from '../api/client';
 
