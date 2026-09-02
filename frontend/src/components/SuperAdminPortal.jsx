@@ -366,6 +366,33 @@ export default function SuperAdminPortal({
     a.click();
   };
 
+  const exportWardEquityCSV = () => {
+    const headers = 'Ward Name,Ward Code,Budget Allocation (KES),Total Applications,Awarded Beneficiaries,Funds Committed (KES),Remaining Balance (KES),Utilization Rate\n';
+    const rows = safeWards.map((w) => {
+      const cleanWName = String(w.name || '').toLowerCase().replace(/\s*ward\s*/g, '').trim();
+      const wardApps = safeApplications.filter((a) => {
+        if (a.ward_id === w.id) return true;
+        const appWardName = String(a.ward?.name || a.ward_name || '').toLowerCase().replace(/\s*ward\s*/g, '').trim();
+        return appWardName && appWardName === cleanWName;
+      });
+
+      const awardedApps = wardApps.filter((a) => a.stage === 'approved' || a.stage === 'paid');
+      const awardedTotal = awardedApps.reduce((sum, a) => sum + (Number(a.approved_amount) || 0), 0);
+      const budgetCap = Number(w.budget_allocation || 5000000);
+      const balance = Math.max(0, budgetCap - awardedTotal);
+      const rate = Math.min(100, Math.round((awardedTotal / Math.max(1, budgetCap)) * 100));
+
+      return `"${w.name}","${w.code || ''}",${budgetCap},${wardApps.length},${awardedApps.length},${awardedTotal},${balance},"${rate}%"`;
+    }).join('\n');
+
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kibwezi-west-ward-benefit-equity-schedule-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
+
   const filteredUsers = safeUsersList.filter((u) => {
     if (!u) return false;
     const nameStr = String(u.name || '').toLowerCase();
@@ -1085,46 +1112,174 @@ export default function SuperAdminPortal({
         </div>
       )}
 
-      {/* TAB 3: WARD BUDGET ALLOCATIONS */}
+      {/* TAB 3: WARD BUDGET ALLOCATIONS & BENEFIT ANALYTICS */}
       {activeSubTab === 'wards' && (
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
             <div>
-              <h3 className="text-base font-black text-[#0F172A] flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-[#0B6B3A]" /> Constituency Ward Budget Allocations
+              <div className="flex items-center gap-2">
+                <span className="bg-emerald-100 text-[#0B6B3A] text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+                  STATUTORY EQUITY TRACKER
+                </span>
+                <span className="text-xs text-slate-500 font-medium">6 Wards Live Monitoring</span>
+              </div>
+              <h3 className="text-base font-black text-[#0F172A] flex items-center gap-2 mt-1">
+                <MapPin className="w-5 h-5 text-[#0B6B3A]" /> Constituency Ward Benefit & Budget Allocations
               </h3>
               <p className="text-xs text-slate-500">
-                Directly adjust and commit ward budget allocations. Changes reflect in real time across all 6 constituency wards.
+                Track how each of the 6 wards is benefiting from bursary funds, monitor budget ceilings, and download equity schedules.
               </p>
             </div>
-            <span className="text-xs font-bold text-[#0B6B3A] bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-              Total Budget: KSh {(totalWardBudget / 1000000).toFixed(1)}M
-            </span>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={exportWardEquityCSV}
+                className="px-4 py-2 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-[#D4A72C]" /> Export Ward Benefit Schedule (CSV)
+              </button>
+              <span className="text-xs font-bold text-[#0B6B3A] bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
+                Total Budget: KSh {(totalWardBudget / 1000000).toFixed(1)}M
+              </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {safeWards.map((w) => (
-              <div key={w.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 hover-card-lift">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-sm text-slate-900">{w.name}</h4>
-                  <span className="text-[10px] font-mono font-bold bg-white border px-2 py-0.5 rounded text-slate-700">
-                    {w.code || `KBW-0${w.id}`}
-                  </span>
+          {/* Grid of 6 Ward Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {safeWards.map((w) => {
+              const cleanWName = String(w.name || '').toLowerCase().replace(/\s*ward\s*/g, '').trim();
+              const wardApps = safeApplications.filter((a) => {
+                if (a.ward_id === w.id) return true;
+                const appWardName = String(a.ward?.name || a.ward_name || '').toLowerCase().replace(/\s*ward\s*/g, '').trim();
+                return appWardName && appWardName === cleanWName;
+              });
+
+              const awardedApps = wardApps.filter((a) => a.stage === 'approved' || a.stage === 'paid');
+              const awardedTotal = awardedApps.reduce((sum, a) => sum + (Number(a.approved_amount) || 0), 0);
+              const budgetCap = Number(w.budget_allocation || 5000000);
+              const balance = Math.max(0, budgetCap - awardedTotal);
+              const rate = Math.min(100, Math.round((awardedTotal / Math.max(1, budgetCap)) * 100));
+
+              return (
+                <div key={w.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3.5 hover:border-emerald-300 hover:shadow-md transition-all">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-bold text-sm text-slate-900">{w.name}</h4>
+                    <span className="text-[10px] font-mono font-bold bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-700">
+                      {w.code || `KBW-0${w.id}`}
+                    </span>
+                  </div>
+
+                  {/* Ward Beneficiary & Fund Stats */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Applications</span>
+                      <strong className="text-slate-800 text-sm font-black">{wardApps.length}</strong>
+                      <span className="text-[10px] text-slate-500 block">Submitted</span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                      <span className="text-[10px] text-emerald-600 uppercase font-bold block">Beneficiaries</span>
+                      <strong className="text-[#0B6B3A] text-sm font-black">{awardedApps.length}</strong>
+                      <span className="text-[10px] text-emerald-700 font-semibold block">Awarded</span>
+                    </div>
+                  </div>
+
+                  {/* Funds Committed & Remaining */}
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between text-slate-600">
+                      <span>Funds Committed:</span>
+                      <strong className="font-mono font-black text-[#0B6B3A]">KSh {awardedTotal.toLocaleString()}</strong>
+                    </div>
+                    <div className="flex justify-between text-slate-500 text-[11px]">
+                      <span>Remaining Balance:</span>
+                      <span className="font-mono font-bold text-slate-700">KSh {balance.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Utilization Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                      <span>Ward Utilization Rate</span>
+                      <span className="text-[#0B6B3A]">{rate}%</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          rate > 90 ? 'bg-rose-500' : rate > 75 ? 'bg-amber-500' : 'bg-[#0B6B3A]'
+                        }`}
+                        style={{ width: `${Math.max(2, rate)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Editable Budget Cap */}
+                  <div className="pt-2 border-t border-slate-200">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                      Budget Allocation Cap (KSh)
+                    </label>
+                    <input
+                      type="number"
+                      defaultValue={w.budget_allocation}
+                      onBlur={(e) => handleUpdateWardBudget(w.id, e.target.value)}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold font-mono text-xs text-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A] outline-none"
+                    />
+                    <span className="text-[9px] text-slate-400 mt-1 block">Click away to save changes to live database</span>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                    Budget Allocation (KSh)
-                  </label>
-                  <input
-                    type="number"
-                    defaultValue={w.budget_allocation}
-                    onBlur={(e) => handleUpdateWardBudget(w.id, e.target.value)}
-                    className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-bold font-mono text-sm text-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                  />
-                  <span className="text-[10px] text-slate-400 mt-1 block">Click away to save changes</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+
+          {/* Comprehensive Ward Benefit Comparison Table */}
+          <div className="pt-4 border-t border-slate-200 space-y-3">
+            <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+              Constituency Ward Equity Summary Table
+            </h4>
+            <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px]">
+                    <th className="p-3">Ward Name</th>
+                    <th className="p-3">Ward Code</th>
+                    <th className="p-3">Budget Cap</th>
+                    <th className="p-3">Applicants</th>
+                    <th className="p-3">Beneficiaries</th>
+                    <th className="p-3">Amount Awarded</th>
+                    <th className="p-3">Remaining Balance</th>
+                    <th className="p-3 text-right">Utilization</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {safeWards.map((w) => {
+                    const cleanWName = String(w.name || '').toLowerCase().replace(/\s*ward\s*/g, '').trim();
+                    const wardApps = safeApplications.filter((a) => {
+                      if (a.ward_id === w.id) return true;
+                      const appWardName = String(a.ward?.name || a.ward_name || '').toLowerCase().replace(/\s*ward\s*/g, '').trim();
+                      return appWardName && appWardName === cleanWName;
+                    });
+                    const awardedApps = wardApps.filter((a) => a.stage === 'approved' || a.stage === 'paid');
+                    const awardedTotal = awardedApps.reduce((sum, a) => sum + (Number(a.approved_amount) || 0), 0);
+                    const budgetCap = Number(w.budget_allocation || 5000000);
+                    const balance = Math.max(0, budgetCap - awardedTotal);
+                    const rate = Math.min(100, Math.round((awardedTotal / Math.max(1, budgetCap)) * 100));
+
+                    return (
+                      <tr key={w.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-3 font-bold text-slate-900">{w.name}</td>
+                        <td className="p-3 font-mono text-slate-600">{w.code || `KBW-0${w.id}`}</td>
+                        <td className="p-3 font-mono font-bold text-slate-700">KSh {budgetCap.toLocaleString()}</td>
+                        <td className="p-3 font-mono">{wardApps.length}</td>
+                        <td className="p-3 font-mono font-bold text-[#0B6B3A]">{awardedApps.length}</td>
+                        <td className="p-3 font-mono font-black text-[#0B6B3A]">KSh {awardedTotal.toLocaleString()}</td>
+                        <td className="p-3 font-mono text-slate-600">KSh {balance.toLocaleString()}</td>
+                        <td className="p-3 text-right font-mono font-bold text-slate-900">{rate}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
