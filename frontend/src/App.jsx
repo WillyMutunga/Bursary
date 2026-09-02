@@ -102,7 +102,7 @@ export default function App() {
   const [isDossierModalOpen, setIsDossierModalOpen] = useState(false);
 
   const [selectedInstLetter, setSelectedInstLetter] = useState({
-    institution: { name: 'University of Nairobi (UoN)' },
+    institution: { name: 'Kenyatta University (KU)', code: 'KU-002' },
     beneficiaries: [],
   });
   const [isInstLetterModalOpen, setIsInstLetterModalOpen] = useState(false);
@@ -358,9 +358,15 @@ export default function App() {
   };
 
   const handleOpenInstitutionalLetterModal = (institution, beneficiaries) => {
+    const targetBeneficiaries = beneficiaries || applications.filter(a => a.stage === 'approved' || a.stage === 'paid');
+    const autoInst = institution
+      || targetBeneficiaries[0]?.institution
+      || (institutions && institutions.find(i => i.id === targetBeneficiaries[0]?.institution_id))
+      || { name: targetBeneficiaries[0]?.institution_name || 'Kenyatta University (KU)', code: 'KU-002' };
+
     setSelectedInstLetter({
-      institution: institution || { name: 'University of Nairobi (UoN)', code: 'UON-001' },
-      beneficiaries: beneficiaries || applications.filter(a => a.stage === 'approved' || a.stage === 'paid'),
+      institution: autoInst,
+      beneficiaries: targetBeneficiaries,
     });
     setIsInstLetterModalOpen(true);
   };
@@ -548,6 +554,7 @@ export default function App() {
         onClose={() => setIsInstLetterModalOpen(false)}
         institution={selectedInstLetter.institution}
         beneficiaries={selectedInstLetter.beneficiaries}
+        institutions={institutions}
       />
 
       {/* Fast Application Status Tracker Modal */}

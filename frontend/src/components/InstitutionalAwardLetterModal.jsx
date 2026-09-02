@@ -1,16 +1,60 @@
-import React from 'react';
-import { Shield, Printer, X, Download, Building2, CheckCircle2, QrCode, FileText } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Shield, Printer, X, Download, Building2, CheckCircle2, QrCode, FileText, ChevronDown } from 'lucide-react';
 
 export default function InstitutionalAwardLetterModal({
   isOpen,
   onClose,
-  institution = { name: 'University of Nairobi (UoN)', code: 'UON-001' },
+  institution: propInstitution,
   beneficiaries = [],
+  institutions = [],
   chequeDetails = { chequeNo: 'EFT-2026-992144', batchNo: 'BATCH-2026-08', date: '22nd August 2026' }
 }) {
   if (!isOpen) return null;
 
-  const totalAmount = beneficiaries.reduce((sum, b) => sum + (Number(b.approved_amount) || 0), 0);
+  // 1. Group beneficiaries by institution
+  const instMap = useMemo(() => {
+    const map = {};
+    beneficiaries.forEach((b) => {
+      let instName = b.institution?.name || b.institution_name;
+      if (!instName && b.institution_id && Array.isArray(institutions)) {
+        const found = institutions.find((i) => i.id === b.institution_id);
+        if (found) instName = found.name;
+      }
+      if (!instName) instName = 'Kenyatta University (KU)';
+
+      if (!map[instName]) {
+        map[instName] = [];
+      }
+      map[instName].push(b);
+    });
+    return map;
+  }, [beneficiaries, institutions]);
+
+  const availableInstNames = Object.keys(instMap);
+
+  // 2. Initial selected institution: prefer prop if valid and matches, else first actual beneficiary institution
+  const initialInstName = useMemo(() => {
+    if (propInstitution?.name && propInstitution.name !== 'University of Nairobi (UoN)' && instMap[propInstitution.name]) {
+      return propInstitution.name;
+    }
+    return availableInstNames[0] || propInstitution?.name || 'Kenyatta University (KU)';
+  }, [propInstitution, instMap, availableInstNames]);
+
+  const [selectedInstName, setSelectedInstName] = useState(initialInstName);
+
+  useEffect(() => {
+    if (initialInstName) {
+      setSelectedInstName(initialInstName);
+    }
+  }, [initialInstName]);
+
+  const activeInstitution = institutions.find((i) => i.name === selectedInstName) || {
+    name: selectedInstName,
+    code: (instMap[selectedInstName]?.[0]?.institution?.code) || 'INST-001'
+  };
+
+  const currentBeneficiaries = instMap[selectedInstName] || beneficiaries;
+  const totalAmount = currentBeneficiaries.reduce((sum, b) => sum + (Number(b.approved_amount) || 0), 0);
 
   const handlePrint = () => {
     window.print();
@@ -21,24 +65,38 @@ export default function InstitutionalAwardLetterModal({
       <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-300 overflow-hidden my-auto relative text-slate-800 print:shadow-none print:border-none print:max-w-full">
         
         {/* Top Control Bar (Hidden on Print) */}
-        <div className="bg-[#0F172A] text-white px-6 py-4 flex justify-between items-center print:hidden">
+        <div className="bg-[#0F172A] text-white px-6 py-4 flex flex-wrap justify-between items-center gap-3 print:hidden">
           <div className="flex items-center gap-2">
             <span className="bg-[#D4A72C] text-[#0F172A] text-[10px] font-black px-2 py-0.5 rounded uppercase">
               INSTITUTIONAL TRANSMITTAL SCHEDULE
             </span>
-            <span className="text-xs text-slate-300 font-bold">{institution.name}</span>
+            {availableInstNames.length > 1 ? (
+              <select
+                value={selectedInstName}
+                onChange={(e) => setSelectedInstName(e.target.value)}
+                className="bg-slate-800 text-xs text-[#D4A72C] font-bold px-2 py-1 rounded border border-slate-600 outline-none cursor-pointer"
+              >
+                {availableInstNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name} ({instMap[name].length})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-xs text-slate-300 font-bold">{activeInstitution.name}</span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-4 py-1.5 bg-[#0B6B3A] hover:bg-[#084e2a] text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all"
+              className="px-4 py-1.5 bg-[#0B6B3A] hover:bg-[#084e2a] text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" /> Print Institutional Letter & Schedule
             </button>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -86,7 +144,7 @@ export default function InstitutionalAwardLetterModal({
           <div className="space-y-0.5 text-xs font-sans">
             <p className="font-bold">TO:</p>
             <p className="font-bold text-slate-900 uppercase">THE VICE-CHANCELLOR / PRINCIPAL / BURSAR,</p>
-            <p className="font-bold text-slate-800">{institution.name}</p>
+            <p className="font-bold text-slate-800 text-sm text-[#0B6B3A]">{activeInstitution.name}</p>
             <p className="text-slate-600">P.O. Box Accredited Address</p>
           </div>
 
@@ -110,7 +168,7 @@ export default function InstitutionalAwardLetterModal({
           {/* Combined Beneficiary Schedule Table */}
           <div className="space-y-2 font-sans pt-2">
             <h4 className="text-xs font-bold uppercase text-slate-900">
-              SCHEDULE OF BENEFICIARY STUDENTS ({beneficiaries.length} STUDENTS)
+              SCHEDULE OF BENEFICIARY STUDENTS ({currentBeneficiaries.length} STUDENTS)
             </h4>
             
             <div className="overflow-x-auto border border-slate-400 rounded-lg">
@@ -127,7 +185,7 @@ export default function InstitutionalAwardLetterModal({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-300">
-                  {beneficiaries.map((b, idx) => (
+                  {currentBeneficiaries.map((b, idx) => (
                     <tr key={idx} className="hover:bg-slate-50">
                       <td className="p-2 border-r border-slate-300 text-center font-bold">{idx + 1}</td>
                       <td className="p-2 border-r border-slate-300 font-bold uppercase">{b.full_name}</td>

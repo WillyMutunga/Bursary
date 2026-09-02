@@ -9,6 +9,7 @@ import { api } from '../api/client';
 export default function FinancePortal({
   applications: parentApplications = [],
   onCreatePaymentBatch,
+  onOpenInstitutionalLetterModal,
 }) {
   const [financeData, setFinanceData] = useState(null);
   const [selectedAppIds, setSelectedAppIds] = useState([]);
@@ -107,13 +108,21 @@ export default function FinancePortal({
           </p>
         </div>
 
-        <button
-          onClick={loadFinance}
-          disabled={isLoading}
-          className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-sm flex items-center gap-2 transition-all shrink-0"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Finance Data
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => onOpenInstitutionalLetterModal && onOpenInstitutionalLetterModal()}
+            className="px-4 py-2 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <FileText className="w-3.5 h-3.5" /> Institutional Transmittal Schedule
+          </button>
+          <button
+            onClick={loadFinance}
+            disabled={isLoading}
+            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-sm flex items-center gap-2 transition-all cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Finance Data
+          </button>
+        </div>
       </div>
 
       {feedback && (
