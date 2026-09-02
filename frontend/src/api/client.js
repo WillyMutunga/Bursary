@@ -136,14 +136,8 @@ export const api = {
       // Fallback to unblocked public administrative sync endpoint
       res = await request('/public/admin-test');
     }
-    // If database returned 0 users or 0 applications, auto-trigger baseline seed
-    if (res && res.success && res.data && (!res.data.users || res.data.users.length === 0)) {
-      await request('/public/ensure-seed');
-      res = await request('/public/admin-test');
-    }
     return res;
   },
-  ensureDatabaseSeed: () => request('/public/ensure-seed'),
   toggleCycleWindow: (isActive, endDate) =>
     request('/admin/cycle/toggle-window', { method: 'POST', body: { is_active: isActive, end_date: endDate } }),
   updateWardBudget: (wardId, budgetAllocation) =>

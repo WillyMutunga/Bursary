@@ -92,67 +92,14 @@ try {
     echo "✓ Super Admin Verified!\n";
     echo "• Username: Willy\n• Email: admin@ngcdf.go.ke\n• National ID: 41354126\n\n";
 
-    echo "3. Ensuring Departmental Staff Accounts...\n";
-    $staff = [
-        [
-            'email' => 'verification@ngcdf.go.ke',
-            'name' => 'Jane Mutheu',
-            'role' => 'verification_officer',
-            'national_id' => '28901234',
-            'phone' => '+254 711 223 344',
-            'password' => Hash::make('William#20'),
-            'designation' => 'Ward Verification Officer',
-            'ward_id' => 1,
-            'is_active' => true,
-        ],
-        [
-            'email' => 'committee@ngcdf.go.ke',
-            'name' => 'Pastor David Musyoka',
-            'role' => 'committee_member',
-            'national_id' => '12345678',
-            'phone' => '+254 722 334 455',
-            'password' => Hash::make('William#20'),
-            'designation' => 'Constituency Bursary Committee Chair',
-            'ward_id' => 4,
-            'is_active' => true,
-        ],
-        [
-            'email' => 'finance@ngcdf.go.ke',
-            'name' => 'Kiprop Langat',
-            'role' => 'finance_officer',
-            'national_id' => '23456789',
-            'phone' => '+254 733 445 566',
-            'password' => Hash::make('William#20'),
-            'designation' => 'Constituency Accountant / Finance Officer',
-            'is_active' => true,
-        ],
-        [
-            'email' => 'school@ngcdf.go.ke',
-            'name' => 'Sister Mary',
-            'role' => 'school_officer',
-            'national_id' => '34567890',
-            'phone' => '+254 744 556 677',
-            'password' => Hash::make('William#20'),
-            'designation' => 'Institution Principal / Bursar',
-            'school_id' => 1,
-            'is_active' => true,
-        ],
-        [
-            'email' => 'applicant@ngcdf.go.ke',
-            'name' => 'Willy Mutunga',
-            'role' => 'applicant',
-            'national_id' => '41354125',
-            'phone' => '0712345678',
-            'password' => Hash::make('William#20'),
-            'ward_id' => 1,
-            'is_active' => true,
-        ],
-    ];
-
-    foreach ($staff as $s) {
-        User::updateOrCreate(['email' => $s['email']], $s);
-        echo "✓ Registered: {$s['name']} ({$s['role']})\n";
-    }
+    // Clean up any extra dummy staff accounts if they exist
+    User::whereIn('email', [
+        'verification@ngcdf.go.ke',
+        'committee@ngcdf.go.ke',
+        'finance@ngcdf.go.ke',
+        'school@ngcdf.go.ke',
+    ])->delete();
+    echo "✓ Cleaned dummy accounts. Only original user accounts remain.\n";
 
     echo "\n4. Ensuring Baseline Constituency Bursary Application...\n";
     $applicant = User::where('national_id', '41354125')->first();
