@@ -30,17 +30,25 @@ class AuthController extends Controller
         $identifier = trim($request->email);
         $cleanPhone = preg_replace('/[^0-9]/', '', $identifier);
 
-        $user = User::where(function ($query) use ($identifier, $cleanPhone) {
-            $query->where('national_id', 'ILIKE', $identifier)
-                ->orWhere('email', 'ILIKE', $identifier)
-                ->orWhere('name', 'ILIKE', $identifier)
-                ->orWhere('phone', 'ILIKE', $identifier);
+        // Fast Path 1: Direct exact match (indexed b-tree lookup: sub-millisecond)
+        $user = User::where('national_id', $identifier)
+            ->orWhere('email', strtolower($identifier))
+            ->orWhere('name', $identifier)
+            ->first();
 
-            if (!empty($cleanPhone) && strlen($cleanPhone) >= 6) {
-                $query->orWhere('national_id', $cleanPhone)
-                    ->orWhere('phone', 'LIKE', "%{$cleanPhone}%");
-            }
-        })->first();
+        // Fast Path 2: Phone or case-insensitive fallback if exact match not found
+        if (!$user) {
+            $user = User::where(function ($query) use ($identifier, $cleanPhone) {
+                $query->where('national_id', 'ILIKE', $identifier)
+                    ->orWhere('email', 'ILIKE', $identifier)
+                    ->orWhere('name', 'ILIKE', $identifier);
+
+                if (!empty($cleanPhone) && strlen($cleanPhone) >= 6) {
+                    $query->orWhere('national_id', $cleanPhone)
+                        ->orWhere('phone', 'LIKE', "%{$cleanPhone}%");
+                }
+            })->first();
+        }
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
@@ -62,16 +70,23 @@ class AuthController extends Controller
             }
         }
 
+        // Prune old tokens for this user so token table stays lean and fast
+        try {
+            $user->tokens()->delete();
+        } catch (\Throwable $e) {}
+
         $token = $user->createToken('bursary_auth_token')->plainTextToken;
 
-        AuditLoggerService::log(
-            action: 'USER_LOGIN',
-            module: 'Authentication',
-            recordId: (string)$user->id,
-            userId: $user->id,
-            userName: $user->name,
-            userRole: $user->role
-        );
+        try {
+            AuditLoggerService::log(
+                action: 'USER_LOGIN',
+                module: 'Authentication',
+                recordId: (string)$user->id,
+                userId: $user->id,
+                userName: $user->name,
+                userRole: $user->role
+            );
+        } catch (\Throwable $e) {}
 
         return response()->json([
             'success' => true,

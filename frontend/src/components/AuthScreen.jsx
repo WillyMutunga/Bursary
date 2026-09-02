@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Shield, User, Lock, ArrowRight, X, CheckCircle2,
   Mail, Phone, MapPin, KeyRound, ArrowLeft, Eye, EyeOff,
-  AlertCircle
+  AlertCircle, RefreshCw
 } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -60,12 +60,14 @@ export default function AuthScreen({
         if (mappedRole === 'school_officer') mappedRole = 'school';
         if (mappedRole === 'admin') mappedRole = 'admin';
 
+        // Instant modal dismiss: hide modal immediately for zero perceived latency
+        setIsLoading(false);
+        onClose();
+
         onLoginSuccess({
           role: mappedRole || 'applicant',
           user: res.user,
         });
-        setIsLoading(false);
-        onClose();
         return;
       } else {
         setErrorMessage(res?.message || 'Invalid username/email or password.');
@@ -334,8 +336,17 @@ export default function AuthScreen({
                   disabled={isLoading}
                   className="w-full py-3.5 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-900/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
                 >
-                  {isLoading ? 'Authenticating...' : 'Sign In to Portal'}
-                  <ArrowRight className="w-4 h-4 text-[#D4A72C]" />
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-[#D4A72C]" />
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Sign In to Portal</span>
+                      <ArrowRight className="w-4 h-4 text-[#D4A72C]" />
+                    </>
+                  )}
                 </button>
               </form>
 
