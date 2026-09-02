@@ -34,6 +34,7 @@ export default function AuthScreen({
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [registeredUser, setRegisteredUser] = useState(null);
+  const [availableAccounts, setAvailableAccounts] = useState(null);
 
   if (!isOpen) return null;
 
@@ -47,6 +48,12 @@ export default function AuthScreen({
 
     try {
       const res = await api.login(identifier, password);
+      if (res && res.requires_role_selection && Array.isArray(res.accounts)) {
+        setAvailableAccounts(res.accounts);
+        setIsLoading(false);
+        return;
+      }
+
       if (res && res.success && res.user) {
         if (res.token) {
           localStorage.setItem('auth_token', res.token);
@@ -71,6 +78,50 @@ export default function AuthScreen({
         return;
       } else {
         setErrorMessage(res?.message || 'Invalid username/email or password.');
+      }
+    } catch (err) {
+      setErrorMessage('Unable to connect to login server. Please try again.');
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleSelectAccount = async (account) => {
+    setIsLoading(true);
+    setErrorMessage('');
+    const password = (formData.password || '').trim();
+
+    try {
+      const res = await api.login({
+        email: account.email,
+        password: password,
+        role: account.role,
+        user_id: account.id,
+      });
+
+      if (res && res.success && res.user) {
+        if (res.token) {
+          localStorage.setItem('auth_token', res.token);
+        }
+        localStorage.setItem('auth_user', JSON.stringify(res.user));
+
+        let mappedRole = res.user.role;
+        if (mappedRole === 'committee_member') mappedRole = 'committee';
+        if (mappedRole === 'verification_officer') mappedRole = 'verification';
+        if (mappedRole === 'finance_officer') mappedRole = 'finance';
+        if (mappedRole === 'school_officer') mappedRole = 'school';
+        if (mappedRole === 'admin') mappedRole = 'admin';
+
+        setIsLoading(false);
+        onClose();
+
+        onLoginSuccess({
+          role: mappedRole || 'applicant',
+          user: res.user,
+        });
+        return;
+      } else {
+        setErrorMessage(res?.message || 'Failed to authenticate selected workspace.');
       }
     } catch (err) {
       setErrorMessage('Unable to connect to login server. Please try again.');
@@ -271,9 +322,13 @@ export default function AuthScreen({
           {mode === 'login' && (
             <div className="space-y-5 my-auto">
               <div>
-                <h3 className="text-2xl font-black text-[#0F172A]">Sign In to Portal</h3>
+                <h3 className="text-2xl font-black text-[#0F172A]">
+                  {availableAccounts ? 'Select Your Workspace' : 'Sign In to Portal'}
+                </h3>
                 <p className="text-slate-500 text-xs mt-0.5">
-                  Enter your National ID, Birth Certificate No, Username, or Email and password.
+                  {availableAccounts
+                    ? 'Multiple accounts match this ID & Password. Click which role you wish to access:'
+                    : 'Enter your National ID, Birth Certificate No, Username, or Email and password.'}
                 </p>
               </div>
 
@@ -284,71 +339,120 @@ export default function AuthScreen({
                 </div>
               )}
 
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
-                {/* Universal Identifier Input */}
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1.5">
-                    NATIONAL ID / BIRTH CERTIFICATE NO / USERNAME / EMAIL
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      placeholder="e.g. 41354126 or Willy or BC-849201 or admin@ngcdf.go.ke"
-                      value={formData.national_id}
-                      onChange={(e) => setFormData({ ...formData, national_id: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0B6B3A] focus:border-transparent outline-none transition-all"
-                      required
-                    />
+              {availableAccounts ? (
+                <div className="space-y-3.5 my-2">
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <p className="text-xs font-black text-emerald-900">
+                      ID #{formData.national_id} linked to {availableAccounts.length} roles
+                    </p>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">
+                      Choose which departmental role to launch:
+                    </p>
                   </div>
-                </div>
 
-                {/* Password Input */}
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="block font-bold text-slate-700 uppercase text-[10px]">
-                      Account Password
+                  <div className="space-y-2">
+                    {availableAccounts.map((acc) => (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        onClick={() => handleSelectAccount(acc)}
+                        disabled={isLoading}
+                        className="w-full text-left p-3.5 bg-white border border-slate-200 hover:border-[#0B6B3A] hover:bg-emerald-50/50 rounded-xl transition-all shadow-sm flex items-center justify-between group cursor-pointer"
+                      >
+                        <div>
+                          <p className="text-xs font-black text-slate-900 group-hover:text-[#0B6B3A] transition-colors">
+                            {acc.designation || acc.name}
+                          </p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">
+                            {acc.email} • Role:{' '}
+                            <span className="font-bold uppercase tracking-wider text-slate-700">
+                              {acc.role.replace('_', ' ')}
+                            </span>
+                          </p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#0B6B3A] group-hover:translate-x-1 transition-all" />
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAvailableAccounts(null);
+                      setErrorMessage('');
+                    }}
+                    className="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors text-center cursor-pointer"
+                  >
+                    ← Back to login
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  {/* Universal Identifier Input */}
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase text-[10px] mb-1.5">
+                      NATIONAL ID / BIRTH CERTIFICATE NO / USERNAME / EMAIL
                     </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                      <input
+                        type="text"
+                        placeholder="e.g. 41354126 or Willy or BC-849201 or admin@ngcdf.go.ke"
+                        value={formData.national_id}
+                        onChange={(e) => setFormData({ ...formData, national_id: e.target.value })}
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0B6B3A] focus:border-transparent outline-none transition-all"
+                        required
+                      />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0B6B3A] focus:border-transparent outline-none transition-all"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
 
-                {/* Universal Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3.5 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-900/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
-                >
-                  {isLoading ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin text-[#D4A72C]" />
-                      <span>Authenticating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Sign In to Portal</span>
-                      <ArrowRight className="w-4 h-4 text-[#D4A72C]" />
-                    </>
-                  )}
-                </button>
-              </form>
+                  {/* Password Input */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block font-bold text-slate-700 uppercase text-[10px]">
+                        Account Password
+                      </label>
+                    </div>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#0B6B3A] focus:border-transparent outline-none transition-all"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Universal Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3.5 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-900/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-[#D4A72C]" />
+                        <span>Authenticating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Sign In to Portal</span>
+                        <ArrowRight className="w-4 h-4 text-[#D4A72C]" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
 
               <div className="text-center text-xs text-slate-500 pt-2">
                 Don't have an applicant account?{' '}

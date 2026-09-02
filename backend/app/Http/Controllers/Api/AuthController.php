@@ -60,8 +60,7 @@ class AuthController extends Controller
         if (count($matchedCandidates) === 1) {
             $user = $matchedCandidates[0];
         } elseif (count($matchedCandidates) > 1) {
-            // If multiple accounts share the same ID & password:
-            // 1. Prefer matching requested role if passed
+            // If the user specified a specific role or user_id, select it
             if ($request->filled('role')) {
                 foreach ($matchedCandidates as $c) {
                     if ($c->role === $request->role) {
@@ -69,18 +68,33 @@ class AuthController extends Controller
                         break;
                     }
                 }
-            }
-            // 2. Otherwise prefer staff roles over applicant
-            if (!$user) {
+            } elseif ($request->filled('user_id')) {
                 foreach ($matchedCandidates as $c) {
-                    if ($c->role !== 'applicant') {
+                    if ($c->id == $request->user_id) {
                         $user = $c;
                         break;
                     }
                 }
             }
+
+            // If not specified, prompt the user to choose their workspace/role
             if (!$user) {
-                $user = $matchedCandidates[0];
+                $accounts = array_map(function ($u) {
+                    return [
+                        'id' => $u->id,
+                        'name' => $u->name,
+                        'email' => $u->email,
+                        'role' => $u->role,
+                        'designation' => $u->designation ?: ucwords(str_replace('_', ' ', $u->role)),
+                    ];
+                }, $matchedCandidates);
+
+                return response()->json([
+                    'success' => true,
+                    'requires_role_selection' => true,
+                    'message' => 'Multiple workspaces found for this ID Number. Please select which role to access.',
+                    'accounts' => $accounts,
+                ]);
             }
         }
 
