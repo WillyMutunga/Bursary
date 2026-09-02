@@ -30,15 +30,14 @@ class AuthController extends Controller
         $identifier = trim($request->email);
         $cleanPhone = preg_replace('/[^0-9]/', '', $identifier);
 
-        // Fast Path 1: Direct exact match (indexed b-tree lookup: sub-millisecond)
-        $user = User::where('national_id', $identifier)
+        // Support shared ID across accounts: fetch all matching candidates by ID, email, or name
+        $candidates = User::where('national_id', $identifier)
             ->orWhere('email', strtolower($identifier))
             ->orWhere('name', $identifier)
-            ->first();
+            ->get();
 
-        // Fast Path 2: Phone or case-insensitive fallback if exact match not found
-        if (!$user) {
-            $user = User::where(function ($query) use ($identifier, $cleanPhone) {
+        if ($candidates->isEmpty()) {
+            $candidates = User::where(function ($query) use ($identifier, $cleanPhone) {
                 $query->where('national_id', 'ILIKE', $identifier)
                     ->orWhere('email', 'ILIKE', $identifier)
                     ->orWhere('name', 'ILIKE', $identifier);
@@ -47,10 +46,45 @@ class AuthController extends Controller
                     $query->orWhere('national_id', $cleanPhone)
                         ->orWhere('phone', 'LIKE', "%{$cleanPhone}%");
                 }
-            })->first();
+            })->get();
         }
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        $user = null;
+        $matchedCandidates = [];
+        foreach ($candidates as $candidate) {
+            if (Hash::check($request->password, $candidate->password)) {
+                $matchedCandidates[] = $candidate;
+            }
+        }
+
+        if (count($matchedCandidates) === 1) {
+            $user = $matchedCandidates[0];
+        } elseif (count($matchedCandidates) > 1) {
+            // If multiple accounts share the same ID & password:
+            // 1. Prefer matching requested role if passed
+            if ($request->filled('role')) {
+                foreach ($matchedCandidates as $c) {
+                    if ($c->role === $request->role) {
+                        $user = $c;
+                        break;
+                    }
+                }
+            }
+            // 2. Otherwise prefer staff roles over applicant
+            if (!$user) {
+                foreach ($matchedCandidates as $c) {
+                    if ($c->role !== 'applicant') {
+                        $user = $c;
+                        break;
+                    }
+                }
+            }
+            if (!$user) {
+                $user = $matchedCandidates[0];
+            }
+        }
+
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials provided. Please verify your Username / ID Number and Password.',
