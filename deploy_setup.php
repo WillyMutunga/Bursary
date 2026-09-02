@@ -75,39 +75,141 @@ try {
     DB::connection()->getPdo();
     echo "✓ Connected to: " . DB::connection()->getDatabaseName() . "\n\n";
 
-    echo "2. Wiping all existing user accounts...\n";
-    try {
-        DB::statement('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
-    } catch (\Exception $e) {
-        DB::table('users')->delete();
+    echo "2. Ensuring Super Admin User...\n";
+    $admin = User::updateOrCreate(
+        ['email' => 'admin@ngcdf.go.ke'],
+        [
+            'name' => 'Willy',
+            'email' => 'admin@ngcdf.go.ke',
+            'phone' => '+254 700 000 000',
+            'role' => 'admin',
+            'national_id' => '41354126',
+            'password' => Hash::make('William#20'),
+            'designation' => 'Constituency Fund Manager / Super Admin',
+            'is_active' => true,
+        ]
+    );
+    echo "✓ Super Admin Verified!\n";
+    echo "• Username: Willy\n• Email: admin@ngcdf.go.ke\n• National ID: 41354126\n\n";
+
+    echo "3. Ensuring Departmental Staff Accounts...\n";
+    $staff = [
+        [
+            'email' => 'verification@ngcdf.go.ke',
+            'name' => 'Jane Mutheu',
+            'role' => 'verification_officer',
+            'national_id' => '28901234',
+            'phone' => '+254 711 223 344',
+            'password' => Hash::make('William#20'),
+            'designation' => 'Ward Verification Officer',
+            'ward_id' => 1,
+            'is_active' => true,
+        ],
+        [
+            'email' => 'committee@ngcdf.go.ke',
+            'name' => 'Pastor David Musyoka',
+            'role' => 'committee_member',
+            'national_id' => '12345678',
+            'phone' => '+254 722 334 455',
+            'password' => Hash::make('William#20'),
+            'designation' => 'Constituency Bursary Committee Chair',
+            'ward_id' => 4,
+            'is_active' => true,
+        ],
+        [
+            'email' => 'finance@ngcdf.go.ke',
+            'name' => 'Kiprop Langat',
+            'role' => 'finance_officer',
+            'national_id' => '23456789',
+            'phone' => '+254 733 445 566',
+            'password' => Hash::make('William#20'),
+            'designation' => 'Constituency Accountant / Finance Officer',
+            'is_active' => true,
+        ],
+        [
+            'email' => 'school@ngcdf.go.ke',
+            'name' => 'Sister Mary',
+            'role' => 'school_officer',
+            'national_id' => '34567890',
+            'phone' => '+254 744 556 677',
+            'password' => Hash::make('William#20'),
+            'designation' => 'Institution Principal / Bursar',
+            'school_id' => 1,
+            'is_active' => true,
+        ],
+        [
+            'email' => 'applicant@ngcdf.go.ke',
+            'name' => 'Willy Mutunga',
+            'role' => 'applicant',
+            'national_id' => '41354125',
+            'phone' => '0712345678',
+            'password' => Hash::make('William#20'),
+            'ward_id' => 1,
+            'is_active' => true,
+        ],
+    ];
+
+    foreach ($staff as $s) {
+        User::updateOrCreate(['email' => $s['email']], $s);
+        echo "✓ Registered: {$s['name']} ({$s['role']})\n";
     }
-    echo "✓ All previous users cleared.\n\n";
 
-    echo "3. Creating Single Super Admin User...\n";
-    $admin = User::create([
-        'name' => 'Willy',
-        'email' => 'admin@ngcdf.go.ke',
-        'phone' => '+254 700 000 000',
-        'role' => 'admin',
-        'national_id' => '41354126',
-        'password' => Hash::make('William#20'),
-        'designation' => 'Constituency Fund Manager / Super Admin',
-        'is_active' => true,
-    ]);
-    echo "✓ Super Admin Created Successfully!\n";
-    echo "• Username: Willy\n";
-    echo "• Email: admin@ngcdf.go.ke\n";
-    echo "• Password: William#20\n\n";
+    echo "\n4. Ensuring Baseline Constituency Bursary Application...\n";
+    $applicant = User::where('national_id', '41354125')->first();
+    $cycle = \App\Models\BursaryCycle::firstOrCreate(
+        ['academic_year' => '2026/2027'],
+        [
+            'title' => '2026/2027 Financial Year (Cycle 1)',
+            'total_budget' => 30000000.00,
+            'allocated_amount' => 10000.00,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-09-30',
+            'is_active' => true,
+            'status' => 'committee_review',
+        ]
+    );
 
-    echo "4. Clearing and optimizing application caches...\n";
+    if ($applicant) {
+        \App\Models\Application::updateOrCreate(
+            ['application_no' => 'CDF/BURS/2026/000001'],
+            [
+                'cycle_id' => $cycle->id,
+                'user_id' => $applicant->id,
+                'ward_id' => 1,
+                'institution_id' => 2,
+                'institution_type' => 'university',
+                'stage' => 'approved',
+                'full_name' => 'Willy Mutunga',
+                'national_id' => '41354125',
+                'phone' => '0712345678',
+                'admission_no' => 'P01/0018/2022',
+                'course_name' => 'BSC COMPUTER SCIENCE',
+                'year_of_study' => 'Year 2',
+                'fees_payable' => 65000.00,
+                'fees_paid' => 40000.00,
+                'fee_balance' => 25000.00,
+                'requested_amount' => 25000.00,
+                'approved_amount' => 10000.00,
+                'vulnerability_category' => 'General',
+                'score' => 85,
+                'verification_status' => 'verified',
+                'is_disabled' => false,
+                'guardian_monthly_income' => 15000.00,
+            ]
+        );
+        echo "✓ Application CDF/BURS/2026/000001 verified in database.\n";
+    }
+
+    echo "\n5. Clearing application caches...\n";
     Artisan::call('config:clear');
     Artisan::call('cache:clear');
     Artisan::call('route:clear');
     echo "✓ System caches cleared.\n\n";
 
     echo "========================================================\n";
-    echo "🎉 COMPLETE! Only Super Admin 'Willy' exists now.\n";
-    echo "All staff roles can be created from the Admin Dashboard.\n";
+    echo "🎉 COMPLETE! Database state verified.\n";
+    echo "• Total Users: " . User::count() . "\n";
+    echo "• Total Applications: " . \App\Models\Application::count() . "\n";
     echo "========================================================\n";
 
 } catch (\Exception $e) {

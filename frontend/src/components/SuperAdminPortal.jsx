@@ -15,6 +15,7 @@ export default function SuperAdminPortal({
   activeSubTab: propActiveSubTab,
   onSelectSubTab,
   onOpenDossierModal,
+  currentUser,
 }) {
   const [internalSubTab, setInternalSubTab] = useState('overview');
   const activeSubTab = propActiveSubTab || internalSubTab;
@@ -22,13 +23,13 @@ export default function SuperAdminPortal({
 
   const [adminData, setAdminData] = useState(null);
   const [applicationsList, setApplicationsList] = useState(initialApplications);
-  const [usersList, setUsersList] = useState([]);
+  const [usersList, setUsersList] = useState(currentUser ? [currentUser] : []);
   const [liveWards, setLiveWards] = useState(initialWards);
   const [institutions, setInstitutions] = useState(initialInstitutions);
   const [liveAuditLogs, setLiveAuditLogs] = useState(initialAuditLogs);
   const [liveStats, setLiveStats] = useState({
-    total_users: 0,
-    total_applications: 0,
+    total_users: currentUser ? 1 : 0,
+    total_applications: Array.isArray(initialApplications) ? initialApplications.length : 0,
     approved_applications: 0,
     total_wards: 6,
     total_institutions: 8,
@@ -73,9 +74,13 @@ export default function SuperAdminPortal({
       if (res && res.success && res.data && typeof res.data === 'object') {
         setAdminData(res.data);
         if (Array.isArray(res.data.applications)) setApplicationsList(res.data.applications);
-        if (Array.isArray(res.data.users)) setUsersList(res.data.users);
-        if (Array.isArray(res.data.wards)) setLiveWards(res.data.wards);
-        if (Array.isArray(res.data.institutions)) setInstitutions(res.data.institutions);
+        if (Array.isArray(res.data.users) && res.data.users.length > 0) {
+          setUsersList(res.data.users);
+        } else if (currentUser) {
+          setUsersList((prev) => (prev.length > 0 ? prev : [currentUser]));
+        }
+        if (Array.isArray(res.data.wards) && res.data.wards.length > 0) setLiveWards(res.data.wards);
+        if (Array.isArray(res.data.institutions) && res.data.institutions.length > 0) setInstitutions(res.data.institutions);
         if (Array.isArray(res.data.audit_logs)) setLiveAuditLogs(res.data.audit_logs);
         if (res.data.statistics && typeof res.data.statistics === 'object') {
           setLiveStats((prev) => ({ ...prev, ...res.data.statistics }));
@@ -83,6 +88,11 @@ export default function SuperAdminPortal({
         if (res.data.active_cycle) {
           setIsWindowOpen(Boolean(res.data.active_cycle.is_active));
         }
+      } else if (res && !res.success) {
+        setFeedback({
+          type: 'error',
+          text: res.message || 'Connecting to live database in progress...',
+        });
       }
     } catch (e) {
       console.warn('Super Admin dashboard load fallback', e);

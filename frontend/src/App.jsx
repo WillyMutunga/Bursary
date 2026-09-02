@@ -486,6 +486,7 @@ export default function App() {
                         setActiveRoleTab((prev) => ({ ...prev, [authSession.role]: tab, admin: tab, analytics: tab }))
                       }
                       onOpenDossierModal={handleOpenDossierModal}
+                      currentUser={authSession.user}
                     />
                   )}
 
