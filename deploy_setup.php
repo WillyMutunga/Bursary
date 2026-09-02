@@ -142,6 +142,22 @@ try {
         }
     }
 
+    // Ensure Kenyatta University exists in institutions table
+    $ku = \App\Models\Institution::firstOrCreate(
+        ['name' => 'Kenyatta University (KU)'],
+        [
+            'code' => 'KU-002',
+            'type' => 'university',
+            'county' => 'Nairobi',
+            'contact_email' => 'finance@ku.ac.ke',
+            'contact_phone' => '+254 20 8710901',
+            'bank_name' => 'National Bank of Kenya',
+            'bank_account_no' => '01003000900',
+            'bank_branch' => 'Kenyatta University Branch',
+            'is_verified' => true,
+        ]
+    );
+
     if ($applicant) {
         \App\Models\Application::updateOrCreate(
             ['application_no' => 'CDF/BURS/2026/000001'],
@@ -149,7 +165,7 @@ try {
                 'cycle_id' => $cycle->id,
                 'user_id' => $applicant->id,
                 'ward_id' => 1,
-                'institution_id' => 2,
+                'institution_id' => $ku->id,
                 'institution_type' => 'university',
                 'stage' => 'approved',
                 'full_name' => 'Willy Mutunga',
