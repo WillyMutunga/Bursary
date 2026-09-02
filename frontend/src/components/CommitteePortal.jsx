@@ -108,8 +108,12 @@ export default function CommitteePortal({
       if (res && res.success) {
         setFeedbackMessage({
           type: 'success',
-          text: `Decision committed: Application ${selectedApp.application_no} updated to ${decisionType} (KSh ${amountNum.toLocaleString()}).`,
+          text: `✓ Decision committed: Application ${selectedApp.application_no} updated to ${decisionType} (KSh ${amountNum.toLocaleString()}).`,
         });
+        if (res.application) {
+          setSelectedApp(res.application);
+          setApplications((prev) => prev.map((a) => (a.id === selectedApp.id ? res.application : a)));
+        }
         if (parentOnRecordDecision) {
           parentOnRecordDecision(selectedApp.id, payload);
         }
@@ -117,13 +121,13 @@ export default function CommitteePortal({
       } else {
         setFeedbackMessage({
           type: 'error',
-          text: res.message || 'Failed to save decision.',
+          text: res?.message || 'Failed to save decision to database.',
         });
       }
     } catch (err) {
       setFeedbackMessage({
         type: 'error',
-        text: 'Error saving committee decision to database.',
+        text: err.message || 'Error saving committee decision to database.',
       });
     } finally {
       setIsSubmitting(false);
@@ -547,42 +551,63 @@ export default function CommitteePortal({
                   ></textarea>
                 </div>
 
+                {/* Inline Decision Feedback Banner */}
+                {feedbackMessage && (
+                  <div className={`p-3.5 rounded-2xl border text-xs flex items-center justify-between shadow-sm animate-fade-in ${
+                    feedbackMessage.type === 'success'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                      : 'bg-rose-50 border-rose-300 text-rose-950 font-bold'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#0B6B3A] shrink-0" />
+                      <span>{feedbackMessage.text}</span>
+                    </div>
+                    <button type="button" onClick={() => setFeedbackMessage(null)} className="underline ml-2 text-[11px] cursor-pointer">
+                      Dismiss ✕
+                    </button>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => handleCommitDecision('APPROVE')}
-                    className="py-3 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                    className="py-3 px-3 bg-[#0B6B3A] hover:bg-[#084e2a] disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-95"
                   >
-                    <CheckCircle className="w-4 h-4" /> Approve Award
+                    <CheckCircle className="w-4 h-4 shrink-0" />
+                    <span>{isSubmitting ? 'Saving...' : 'Approve Award'}</span>
                   </button>
 
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => handleCommitDecision('DEFER')}
-                    className="py-3 bg-amber-500 hover:bg-amber-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                    className="py-3 px-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-95"
                   >
-                    <Clock className="w-4 h-4" /> Defer
+                    <Clock className="w-4 h-4 shrink-0" />
+                    <span>Defer</span>
                   </button>
 
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => handleCommitDecision('REJECT')}
-                    className="py-3 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                    className="py-3 px-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-95"
                   >
-                    <XCircle className="w-4 h-4" /> Reject
+                    <XCircle className="w-4 h-4 shrink-0" />
+                    <span>Reject</span>
                   </button>
 
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => handleCommitDecision('RETURN_FOR_VERIFICATION')}
-                    className="py-3 bg-slate-700 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                    className="py-3 px-3 bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-95"
                   >
-                    <RotateCcw className="w-4 h-4" /> Return to Officer
+                    <RotateCcw className="w-4 h-4 shrink-0" />
+                    <span>Return to Officer</span>
                   </button>
                 </div>
               </div>

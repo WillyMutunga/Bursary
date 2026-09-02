@@ -6,11 +6,15 @@ async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+
   const defaultHeaders = isFormData
-    ? { 'Accept': 'application/json' }
+    ? { 'Accept': 'application/json', ...authHeaders }
     : {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        ...authHeaders,
       };
 
   const config = {

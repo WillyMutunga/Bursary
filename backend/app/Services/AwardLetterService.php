@@ -12,7 +12,8 @@ class AwardLetterService
     public function generateAwardLetterPayload(Application $app): array
     {
         $secretSalt = config('app.key', 'ngcdf_bursary_secret_salt_2026');
-        $hashString = "{$app->application_no}|{$app->national_id}|{$app->approved_amount}|{$app->cycle->academic_year}|{$secretSalt}";
+        $academicYear = $app->cycle ? $app->cycle->academic_year : '2026/2027';
+        $hashString = "{$app->application_no}|{$app->national_id}|{$app->approved_amount}|{$academicYear}|{$secretSalt}";
         $certificateHash = strtoupper(substr(hash('sha256', $hashString), 0, 20));
 
         $qrData = [
