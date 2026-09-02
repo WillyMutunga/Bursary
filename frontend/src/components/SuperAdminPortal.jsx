@@ -232,23 +232,34 @@ export default function SuperAdminPortal({
       String(a.admission_no || '').toLowerCase().includes(search) ||
       String(a.institution?.name || a.institution_name || '').toLowerCase().includes(search);
 
-    // 2. Ward filter
+    // 2. Ward filter (support numeric ID, ward name, with or without "Ward", with or without spaces)
+    const appWardId = String(a.ward_id || a.ward?.id || '');
+    const appWardName = String(a.ward?.name || a.ward_name || '').toLowerCase();
+    const cleanAppWard = appWardName.replace(/\s+/g, '').replace(/ward/gi, '');
+    const cleanSelectedWard = String(filterAppWard).toLowerCase().replace(/\s+/g, '').replace(/ward/gi, '');
+
     const matchesWard = filterAppWard === 'all' ||
-      String(a.ward_id) === String(filterAppWard) ||
-      String(a.ward?.id) === String(filterAppWard) ||
-      String(a.ward?.name || '').toLowerCase() === String(filterAppWard).toLowerCase();
+      appWardId === String(filterAppWard) ||
+      cleanAppWard === cleanSelectedWard ||
+      cleanAppWard.includes(cleanSelectedWard) ||
+      cleanSelectedWard.includes(cleanAppWard);
 
     // 3. Education Level / Institution Type filter
-    const instType = String(a.institution_type || a.institution?.type || '').toLowerCase();
+    const instType = String(a.institution_type || a.institution?.type || a.institution?.name || '').toLowerCase();
     const matchesLevel = filterAppLevel === 'all' ||
       instType === String(filterAppLevel).toLowerCase() ||
       (filterAppLevel === 'secondary' && (instType.includes('second') || instType.includes('high'))) ||
-      (filterAppLevel === 'tvet' && (instType.includes('tvet') || instType.includes('poly') || instType.includes('vocat') || instType.includes('college'))) ||
-      (filterAppLevel === 'university' && (instType.includes('univ') || instType.includes('tertiary'))) ||
+      (filterAppLevel === 'tvet' && (instType.includes('tvet') || instType.includes('poly') || instType.includes('vocat') || instType.includes('college') || instType.includes('institute'))) ||
+      (filterAppLevel === 'university' && (instType.includes('univ') || instType.includes('tertiary') || instType.includes('degree'))) ||
       (filterAppLevel === 'special_needs' && (instType.includes('special') || String(a.vulnerability_category).toLowerCase().includes('pwd')));
 
     // 4. Lifecycle Stage filter
-    const matchesStage = filterAppStage === 'all' || String(a.stage || '').toLowerCase() === String(filterAppStage).toLowerCase();
+    const appStage = String(a.stage || '').toLowerCase();
+    const cleanFilterStage = String(filterAppStage || '').toLowerCase();
+    const matchesStage = filterAppStage === 'all' ||
+      appStage === cleanFilterStage ||
+      (cleanFilterStage === 'approved' && ['approved', 'awarded', 'paid'].includes(appStage)) ||
+      (cleanFilterStage === 'under_verification' && ['submitted', 'under_verification'].includes(appStage));
 
     // 5. Vulnerability / Affirmative Quota filter
     const vuln = String(a.vulnerability_category || a.special_category || '').toLowerCase();
@@ -257,7 +268,7 @@ export default function SuperAdminPortal({
       (filterAppVulnerability === 'partial_orphan' && vuln.includes('partial')) ||
       (filterAppVulnerability === 'pwd' && (vuln.includes('pwd') || vuln.includes('disab') || a.is_pwd)) ||
       (filterAppVulnerability === 'extreme_need' && (vuln.includes('extreme') || vuln.includes('needy') || vuln.includes('poor') || vuln.includes('single'))) ||
-      (filterAppVulnerability === 'general' && (vuln.includes('general') || !vuln));
+      (filterAppVulnerability === 'general' && (vuln.includes('general') || !vuln || vuln === 'null'));
 
     return matchesSearch && matchesWard && matchesLevel && matchesStage && matchesVuln;
   });
@@ -739,13 +750,23 @@ export default function SuperAdminPortal({
                     onChange={(e) => setFilterAppWard(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#0B6B3A] outline-none text-xs font-medium cursor-pointer"
                   >
-                    <option value="all">All Wards (6)</option>
-                    <option value="Emali/Mulala">Emali / Mulala</option>
-                    <option value="Nguu/Masumba">Nguu / Masumba</option>
-                    <option value="Nguumo">Nguumo</option>
-                    <option value="Makindu">Makindu</option>
-                    <option value="Kikumbulyu North">Kikumbulyu North</option>
-                    <option value="Kikumbulyu South">Kikumbulyu South</option>
+                    <option value="all">All Wards ({safeWards.length || 6})</option>
+                    {safeWards.length > 0 ? (
+                      safeWards.map((w) => (
+                        <option key={w.id} value={w.id}>
+                          {w.name}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="Emali / Mulala">Emali / Mulala</option>
+                        <option value="Nguu / Masumba">Nguu / Masumba</option>
+                        <option value="Nguumo">Nguumo</option>
+                        <option value="Makindu">Makindu</option>
+                        <option value="Kikumbulyu North">Kikumbulyu North</option>
+                        <option value="Kikumbulyu South">Kikumbulyu South</option>
+                      </>
+                    )}
                   </select>
                 </div>
 

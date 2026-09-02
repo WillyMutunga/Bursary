@@ -177,7 +177,16 @@ export default function CommitteePortal({
       String(a.institution?.name || '').toLowerCase().includes(query);
 
     const matchesStage = filterStage === 'all' || a.stage === filterStage;
-    const matchesWard = filterWard === 'all' || String(a.ward_id) === String(filterWard) || String(a.ward?.id) === String(filterWard);
+    const appWardId = String(a.ward_id || a.ward?.id || '');
+    const appWardName = String(a.ward?.name || a.ward_name || '').toLowerCase();
+    const cleanAppWard = appWardName.replace(/\s+/g, '').replace(/ward/gi, '');
+    const cleanFilterWard = String(filterWard).toLowerCase().replace(/\s+/g, '').replace(/ward/gi, '');
+
+    const matchesWard = filterWard === 'all' ||
+      appWardId === String(filterWard) ||
+      cleanAppWard === cleanFilterWard ||
+      cleanAppWard.includes(cleanFilterWard) ||
+      cleanFilterWard.includes(cleanAppWard);
 
     const instType = String(a.institution_type || a.institution?.type || '').toLowerCase();
     const matchesLevel = filterLevel === 'all' ||
