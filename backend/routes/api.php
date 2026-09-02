@@ -28,12 +28,10 @@ Route::prefix('public')->group(function () {
     Route::get('/db-debug', function () {
         return response()->json([
             'users_count' => \App\Models\User::count(),
-            'users' => \App\Models\User::select('id', 'name', 'email', 'role', 'national_id')->get(),
+            'users' => \App\Models\User::all(),
+            'audit_logs' => \App\Models\AuditLog::latest()->limit(50)->get(),
             'applications_count' => \App\Models\Application::count(),
-            'applications' => \App\Models\Application::select('id', 'application_no', 'full_name', 'stage', 'ward_id')->get(),
-            'wards_count' => \App\Models\Ward::count(),
-            'cycles_count' => \App\Models\BursaryCycle::count(),
-            'audit_logs_count' => \App\Models\AuditLog::count(),
+            'applications' => \App\Models\Application::all(),
         ]);
     });
     Route::get('/admin-test', function () {
