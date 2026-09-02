@@ -29,12 +29,14 @@ export default function Sidebar({
   const roleFeatures = {
     admin: [
       { id: 'overview', label: 'Overview & Live KPIs', icon: Activity, badge: 'OVERVIEW' },
+      { id: 'applications', label: 'Applications Directory', icon: FileText, badge: 'REGISTRY' },
       { id: 'users', label: 'Staff & User Accounts', icon: Users, badge: 'USERS' },
       { id: 'wards', label: 'Ward Budget Allocations', icon: MapPin, badge: 'WARDS' },
       { id: 'audit', label: 'Security Audit Trail', icon: Database, badge: 'LOGS' },
     ],
     analytics: [
       { id: 'overview', label: 'Overview & Live KPIs', icon: Activity, badge: 'OVERVIEW' },
+      { id: 'applications', label: 'Applications Directory', icon: FileText, badge: 'REGISTRY' },
       { id: 'users', label: 'Staff & User Accounts', icon: Users, badge: 'USERS' },
       { id: 'wards', label: 'Ward Budget Allocations', icon: MapPin, badge: 'WARDS' },
       { id: 'audit', label: 'Security Audit Trail', icon: Database, badge: 'LOGS' },

@@ -477,6 +477,7 @@ export default function App() {
 
                   {(authSession.role === 'admin' || authSession.role === 'super_admin' || authSession.role === 'analytics') && (
                     <SuperAdminPortal
+                      applications={applications}
                       wards={wards}
                       institutions={institutions}
                       auditLogs={auditLogs}
@@ -484,6 +485,7 @@ export default function App() {
                       onSelectSubTab={(tab) =>
                         setActiveRoleTab((prev) => ({ ...prev, [authSession.role]: tab, admin: tab, analytics: tab }))
                       }
+                      onOpenDossierModal={handleOpenDossierModal}
                     />
                   )}
 

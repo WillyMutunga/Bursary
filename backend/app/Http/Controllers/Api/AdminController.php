@@ -22,6 +22,7 @@ class AdminController extends Controller
         $institutions = Institution::orderBy('id')->get();
         $activeCycle = BursaryCycle::where('is_active', true)->first() ?: BursaryCycle::first();
         $auditLogs = AuditLog::latest()->limit(100)->get();
+        $applications = Application::with(['ward', 'institution', 'cycle', 'user'])->latest()->get();
 
         $stats = [
             'total_users' => User::count(),
@@ -39,6 +40,7 @@ class AdminController extends Controller
                 'users' => $users,
                 'wards' => $wards,
                 'institutions' => $institutions,
+                'applications' => $applications,
                 'active_cycle' => $activeCycle,
                 'statistics' => $stats,
                 'audit_logs' => $auditLogs,

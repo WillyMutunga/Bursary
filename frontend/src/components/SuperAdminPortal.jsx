@@ -8,17 +8,20 @@ import {
 import { api } from '../api/client';
 
 export default function SuperAdminPortal({
+  applications: initialApplications = [],
   wards: initialWards = [],
   institutions: initialInstitutions = [],
   auditLogs: initialAuditLogs = [],
   activeSubTab: propActiveSubTab,
   onSelectSubTab,
+  onOpenDossierModal,
 }) {
   const [internalSubTab, setInternalSubTab] = useState('overview');
   const activeSubTab = propActiveSubTab || internalSubTab;
   const setActiveSubTab = onSelectSubTab || setInternalSubTab;
 
   const [adminData, setAdminData] = useState(null);
+  const [applicationsList, setApplicationsList] = useState(initialApplications);
   const [usersList, setUsersList] = useState([]);
   const [liveWards, setLiveWards] = useState(initialWards);
   const [institutions, setInstitutions] = useState(initialInstitutions);
@@ -37,6 +40,13 @@ export default function SuperAdminPortal({
   const [deadlineDate, setDeadlineDate] = useState('2026-09-30');
   const [searchUserQuery, setSearchUserQuery] = useState('');
   const [filterUserRole, setFilterUserRole] = useState('all');
+
+  // Application Filters (5-axis)
+  const [filterAppSearch, setFilterAppSearch] = useState('');
+  const [filterAppWard, setFilterAppWard] = useState('all');
+  const [filterAppLevel, setFilterAppLevel] = useState('all');
+  const [filterAppStage, setFilterAppStage] = useState('all');
+  const [filterAppVulnerability, setFilterAppVulnerability] = useState('all');
 
   const [isLoading, setIsLoading] = useState(true);
   const [feedback, setFeedback] = useState(null);
@@ -62,6 +72,7 @@ export default function SuperAdminPortal({
       const res = await api.getAdminDashboard();
       if (res && res.success && res.data && typeof res.data === 'object') {
         setAdminData(res.data);
+        if (Array.isArray(res.data.applications)) setApplicationsList(res.data.applications);
         if (Array.isArray(res.data.users)) setUsersList(res.data.users);
         if (Array.isArray(res.data.wards)) setLiveWards(res.data.wards);
         if (Array.isArray(res.data.institutions)) setInstitutions(res.data.institutions);
@@ -79,6 +90,12 @@ export default function SuperAdminPortal({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (initialApplications && initialApplications.length > 0 && applicationsList.length === 0) {
+      setApplicationsList(initialApplications);
+    }
+  }, [initialApplications]);
 
   useEffect(() => {
     loadAdminDashboard();
@@ -199,6 +216,118 @@ export default function SuperAdminPortal({
   const safeWards = Array.isArray(liveWards) ? liveWards : [];
   const safeAuditLogs = Array.isArray(liveAuditLogs) ? liveAuditLogs : [];
   const safeStats = liveStats && typeof liveStats === 'object' ? liveStats : {};
+  const safeApplications = Array.isArray(applicationsList) && applicationsList.length > 0
+    ? applicationsList
+    : (Array.isArray(initialApplications) ? initialApplications : []);
+
+  const filteredApplications = safeApplications.filter((a) => {
+    if (!a) return false;
+
+    // 1. Keyword search (Name, App No, National ID, Admission No, Institution)
+    const search = String(filterAppSearch || '').toLowerCase().trim();
+    const matchesSearch = !search ||
+      String(a.full_name || '').toLowerCase().includes(search) ||
+      String(a.application_no || '').toLowerCase().includes(search) ||
+      String(a.national_id || '').toLowerCase().includes(search) ||
+      String(a.admission_no || '').toLowerCase().includes(search) ||
+      String(a.institution?.name || a.institution_name || '').toLowerCase().includes(search);
+
+    // 2. Ward filter
+    const matchesWard = filterAppWard === 'all' ||
+      String(a.ward_id) === String(filterAppWard) ||
+      String(a.ward?.id) === String(filterAppWard) ||
+      String(a.ward?.name || '').toLowerCase() === String(filterAppWard).toLowerCase();
+
+    // 3. Education Level / Institution Type filter
+    const instType = String(a.institution_type || a.institution?.type || '').toLowerCase();
+    const matchesLevel = filterAppLevel === 'all' ||
+      instType === String(filterAppLevel).toLowerCase() ||
+      (filterAppLevel === 'secondary' && (instType.includes('second') || instType.includes('high'))) ||
+      (filterAppLevel === 'tvet' && (instType.includes('tvet') || instType.includes('poly') || instType.includes('vocat') || instType.includes('college'))) ||
+      (filterAppLevel === 'university' && (instType.includes('univ') || instType.includes('tertiary'))) ||
+      (filterAppLevel === 'special_needs' && (instType.includes('special') || String(a.vulnerability_category).toLowerCase().includes('pwd')));
+
+    // 4. Lifecycle Stage filter
+    const matchesStage = filterAppStage === 'all' || String(a.stage || '').toLowerCase() === String(filterAppStage).toLowerCase();
+
+    // 5. Vulnerability / Affirmative Quota filter
+    const vuln = String(a.vulnerability_category || a.special_category || '').toLowerCase();
+    const matchesVuln = filterAppVulnerability === 'all' ||
+      (filterAppVulnerability === 'total_orphan' && vuln.includes('total')) ||
+      (filterAppVulnerability === 'partial_orphan' && vuln.includes('partial')) ||
+      (filterAppVulnerability === 'pwd' && (vuln.includes('pwd') || vuln.includes('disab') || a.is_pwd)) ||
+      (filterAppVulnerability === 'extreme_need' && (vuln.includes('extreme') || vuln.includes('needy') || vuln.includes('poor') || vuln.includes('single'))) ||
+      (filterAppVulnerability === 'general' && (vuln.includes('general') || !vuln));
+
+    return matchesSearch && matchesWard && matchesLevel && matchesStage && matchesVuln;
+  });
+
+  const filteredTotalFees = filteredApplications.reduce((sum, a) => sum + (Number(a.fee_balance) || 0), 0);
+  const filteredTotalRequested = filteredApplications.reduce((sum, a) => sum + (Number(a.requested_amount) || 0), 0);
+  const filteredTotalApproved = filteredApplications.reduce((sum, a) => sum + (Number(a.approved_amount || a.recommended_amount) || 0), 0);
+  const filteredApprovedCount = filteredApplications.filter((a) => ['approved', 'awarded', 'paid'].includes(String(a.stage).toLowerCase())).length;
+
+  const exportFilteredApplicantsCSV = () => {
+    const headers = [
+      'Application No',
+      'Full Name',
+      'National ID / Birth Cert',
+      'Phone Number',
+      'Gender',
+      'Electoral Ward',
+      'Sub-County',
+      'Institution Name',
+      'Institution Level',
+      'Admission No',
+      'Course / Grade',
+      'Year of Study',
+      'Fee Balance (KES)',
+      'Requested Amount (KES)',
+      'Vulnerability Category',
+      'Verification Status',
+      'Approved Award (KES)',
+      'Current Stage',
+      'Submission Date'
+    ].join(',') + '\n';
+
+    const rows = filteredApplications.map(a => {
+      const appNo = `"${a.application_no || 'N/A'}"`;
+      const name = `"${String(a.full_name || '').replace(/"/g, '""')}"`;
+      const idNo = `"${a.national_id || 'N/A'}"`;
+      const phone = `"${a.phone || a.user?.phone || 'N/A'}"`;
+      const gender = `"${a.gender || 'N/A'}"`;
+      const ward = `"${a.ward?.name || a.ward_name || 'N/A'}"`;
+      const subCounty = `"Kibwezi West"`;
+      const instName = `"${String(a.institution?.name || a.institution_name || 'N/A').replace(/"/g, '""')}"`;
+      const instType = `"${a.institution?.type || a.institution_type || 'N/A'}"`;
+      const admNo = `"${a.admission_no || 'N/A'}"`;
+      const course = `"${String(a.course_name || a.grade_level || 'N/A').replace(/"/g, '""')}"`;
+      const yearOfStudy = `"${a.year_of_study || 'N/A'}"`;
+      const balance = Number(a.fee_balance || 0);
+      const requested = Number(a.requested_amount || 0);
+      const vuln = `"${a.vulnerability_category || 'General'}"`;
+      const verifyStatus = `"${a.verification_status || 'verified'}"`;
+      const approved = Number(a.approved_amount || a.recommended_amount || 0);
+      const stage = `"${a.stage || 'submitted'}"`;
+      const date = `"${a.created_at ? new Date(a.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)}"`;
+
+      return [
+        appNo, name, idNo, phone, gender, ward, subCounty,
+        instName, instType, admNo, course, yearOfStudy,
+        balance, requested, vuln, verifyStatus, approved,
+        stage, date
+      ].join(',');
+    }).join('\n');
+
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `NGCDF-KibweziWest-Applicants-Schedule-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const exportAuditCSV = () => {
     const headers = 'Log ID,Timestamp,Actor / User,Action Code,Module,Record ID\n';
@@ -368,16 +497,19 @@ export default function SuperAdminPortal({
         </div>
 
         {/* Card 2: Applications */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-2.5 transition-all duration-200 hover:shadow-md hover:border-blue-300 group">
+        <div
+          onClick={() => setActiveSubTab('applications')}
+          className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-2.5 transition-all duration-200 hover:shadow-md hover:border-blue-300 group cursor-pointer"
+        >
           <div className="flex justify-between items-center">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Applications</span>
             <div className="w-8 h-8 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200/60 shadow-inner group-hover:scale-110 transition-transform">
               <FileText className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-black text-slate-900 tracking-tight">{safeStats.total_applications || 0}</p>
+          <p className="text-3xl font-black text-slate-900 tracking-tight">{safeStats.total_applications || safeApplications.length || 0}</p>
           <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg w-fit">
-            <span>✓</span> {safeStats.approved_applications || 0} Awards Approved
+            <span>✓</span> {safeStats.approved_applications || filteredApprovedCount || 0} Awards Approved
           </div>
         </div>
 
@@ -417,7 +549,7 @@ export default function SuperAdminPortal({
       </div>
 
       {/* 3. SECTION SUB-TABS */}
-      <div className="flex bg-slate-200/80 p-1 rounded-2xl gap-1 text-xs font-bold shadow-inner max-w-2xl overflow-x-auto">
+      <div className="flex bg-slate-200/80 p-1 rounded-2xl gap-1 text-xs font-bold shadow-inner max-w-3xl overflow-x-auto">
         <button
           onClick={() => setActiveSubTab('overview')}
           className={`flex-1 min-w-[120px] py-2.5 rounded-xl transition-all cursor-pointer text-center ${
@@ -427,6 +559,16 @@ export default function SuperAdminPortal({
           }`}
         >
           Overview & Limits
+        </button>
+        <button
+          onClick={() => setActiveSubTab('applications')}
+          className={`flex-1 min-w-[150px] py-2.5 rounded-xl transition-all cursor-pointer text-center ${
+            activeSubTab === 'applications'
+              ? 'bg-white text-[#0B6B3A] shadow-sm font-black'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Applications Directory ({filteredApplications.length})
         </button>
         <button
           onClick={() => setActiveSubTab('users')}
@@ -528,6 +670,272 @@ export default function SuperAdminPortal({
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Connected & Verified
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: APPLICATIONS MASTER DIRECTORY & REPORTING */}
+      {activeSubTab === 'applications' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-4">
+              <div>
+                <h3 className="text-base font-black text-[#0F172A] flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#0B6B3A]" /> Bursary Applications Master Directory
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Filter, inspect, and export constituency applicants across all 6 wards, education tiers, and lifecycle stages.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={exportFilteredApplicantsCSV}
+                  className="px-4 py-2 bg-[#0B6B3A] hover:bg-[#084e2a] text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" /> Export Applicants Schedule (CSV)
+                </button>
+                {(filterAppSearch || filterAppWard !== 'all' || filterAppLevel !== 'all' || filterAppStage !== 'all' || filterAppVulnerability !== 'all') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterAppSearch('');
+                      setFilterAppWard('all');
+                      setFilterAppLevel('all');
+                      setFilterAppStage('all');
+                      setFilterAppVulnerability('all');
+                    }}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Reset Filters
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 5-Axis Responsive Filter Toolbar */}
+            <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                <Filter className="w-3.5 h-3.5 text-[#0B6B3A]" /> Filter Parameters:
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                {/* 1. Keyword Search */}
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={filterAppSearch}
+                    onChange={(e) => setFilterAppSearch(e.target.value)}
+                    placeholder="Search name, ID, ref..."
+                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#0B6B3A] focus:border-transparent outline-none text-xs"
+                  />
+                </div>
+
+                {/* 2. Electoral Ward Filter */}
+                <div>
+                  <select
+                    value={filterAppWard}
+                    onChange={(e) => setFilterAppWard(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#0B6B3A] outline-none text-xs font-medium cursor-pointer"
+                  >
+                    <option value="all">All Wards (6)</option>
+                    <option value="Emali/Mulala">Emali / Mulala</option>
+                    <option value="Nguu/Masumba">Nguu / Masumba</option>
+                    <option value="Nguumo">Nguumo</option>
+                    <option value="Makindu">Makindu</option>
+                    <option value="Kikumbulyu North">Kikumbulyu North</option>
+                    <option value="Kikumbulyu South">Kikumbulyu South</option>
+                  </select>
+                </div>
+
+                {/* 3. Education Level Filter */}
+                <div>
+                  <select
+                    value={filterAppLevel}
+                    onChange={(e) => setFilterAppLevel(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#0B6B3A] outline-none text-xs font-medium cursor-pointer"
+                  >
+                    <option value="all">All Education Levels</option>
+                    <option value="secondary">Secondary School</option>
+                    <option value="tvet">TVET / Polytechnic</option>
+                    <option value="university">University / Degree</option>
+                    <option value="special_needs">Special Needs School</option>
+                  </select>
+                </div>
+
+                {/* 4. Lifecycle Stage Filter */}
+                <div>
+                  <select
+                    value={filterAppStage}
+                    onChange={(e) => setFilterAppStage(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#0B6B3A] outline-none text-xs font-medium cursor-pointer"
+                  >
+                    <option value="all">All Lifecycle Stages</option>
+                    <option value="submitted">1. Submitted</option>
+                    <option value="under_verification">2. Under Verification</option>
+                    <option value="verified">3. Verified</option>
+                    <option value="committee_review">4. Committee Review</option>
+                    <option value="approved">5. Approved</option>
+                    <option value="awarded">6. Awarded</option>
+                    <option value="paid">7. Disbursed / Paid</option>
+                    <option value="deferred">Deferred</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+
+                {/* 5. Vulnerability Quota Filter */}
+                <div>
+                  <select
+                    value={filterAppVulnerability}
+                    onChange={(e) => setFilterAppVulnerability(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#0B6B3A] outline-none text-xs font-medium cursor-pointer"
+                  >
+                    <option value="all">All Priority Quotas</option>
+                    <option value="total_orphan">Total Orphan</option>
+                    <option value="partial_orphan">Partial Orphan</option>
+                    <option value="pwd">PWD / Special Needs</option>
+                    <option value="extreme_need">Extreme Poverty / Needy</option>
+                    <option value="general">General Applicants</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Filter Metric Ribbon */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500">Matching Applicants</span>
+                <p className="text-lg font-black text-slate-900 font-mono">
+                  {filteredApplications.length} <span className="text-xs font-normal text-slate-400">/ {safeApplications.length}</span>
+                </p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500">Total Filtered Balance</span>
+                <p className="text-lg font-black text-slate-900 font-mono">
+                  KSh {filteredTotalFees.toLocaleString()}
+                </p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500">Requested Amount</span>
+                <p className="text-lg font-black text-[#0B6B3A] font-mono">
+                  KSh {filteredTotalRequested.toLocaleString()}
+                </p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500">Approved Awards</span>
+                <p className="text-lg font-black text-emerald-700 font-mono">
+                  KSh {filteredTotalApproved.toLocaleString()} <span className="text-xs font-bold text-emerald-600">({filteredApprovedCount} Awards)</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Applications Table */}
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar border border-slate-200 rounded-2xl">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] sticky top-0 z-10">
+                    <th className="p-3">Ref No</th>
+                    <th className="p-3">Applicant Name & ID</th>
+                    <th className="p-3">Ward</th>
+                    <th className="p-3">Institution & Level</th>
+                    <th className="p-3 text-right">Fee Balance</th>
+                    <th className="p-3 text-right">Requested</th>
+                    <th className="p-3">Quota / Priority</th>
+                    <th className="p-3">Stage & Status</th>
+                    <th className="p-3 text-right">Award (KES)</th>
+                    <th className="p-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-sans text-xs">
+                  {filteredApplications.length === 0 ? (
+                    <tr>
+                      <td colSpan="10" className="p-8 text-center text-slate-500">
+                        <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                        <p className="font-bold">No applications found matching selected filter criteria.</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Try resetting or broadening your filters.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredApplications.map((app) => {
+                      const isApproved = ['approved', 'awarded', 'paid'].includes(String(app.stage).toLowerCase());
+                      const isReview = String(app.stage).toLowerCase() === 'committee_review';
+                      const isRejected = String(app.stage).toLowerCase() === 'rejected';
+
+                      return (
+                        <tr key={app.id || app.application_no} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-3 font-mono text-[11px] font-bold text-slate-700 whitespace-nowrap">
+                            {app.application_no || `CDF-2026-${app.id}`}
+                          </td>
+                          <td className="p-3">
+                            <span className="font-bold text-slate-900 block">{app.full_name}</span>
+                            <span className="text-[10px] font-mono text-slate-400">ID: {app.national_id || 'N/A'}</span>
+                          </td>
+                          <td className="p-3 whitespace-nowrap">
+                            <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold text-[10px]">
+                              {app.ward?.name || app.ward_name || 'Kibwezi West'}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <span className="font-medium text-slate-800 block truncate max-w-[180px]">
+                              {app.institution?.name || app.institution_name || 'Institution'}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400 uppercase">
+                              {app.institution?.type || app.institution_type || 'Tertiary'} • {app.admission_no || 'No Adm'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right font-mono text-slate-700">
+                            KSh {Number(app.fee_balance || 0).toLocaleString()}
+                          </td>
+                          <td className="p-3 text-right font-mono font-bold text-slate-900">
+                            KSh {Number(app.requested_amount || 0).toLocaleString()}
+                          </td>
+                          <td className="p-3 whitespace-nowrap">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              String(app.vulnerability_category || '').toLowerCase().includes('orphan')
+                                ? 'bg-purple-100 text-purple-800'
+                                : String(app.vulnerability_category || '').toLowerCase().includes('pwd')
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {app.vulnerability_category || 'General'}
+                            </span>
+                          </td>
+                          <td className="p-3 whitespace-nowrap">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                              isApproved
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : isReview
+                                ? 'bg-blue-100 text-blue-800'
+                                : isRejected
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              ● {app.stage?.replace(/_/g, ' ') || 'Submitted'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right font-mono font-black text-[#0B6B3A]">
+                            {Number(app.approved_amount || app.recommended_amount || 0) > 0
+                              ? `KSh ${Number(app.approved_amount || app.recommended_amount).toLocaleString()}`
+                              : '—'}
+                          </td>
+                          <td className="p-3 text-center whitespace-nowrap">
+                            {onOpenDossierModal && (
+                              <button
+                                type="button"
+                                onClick={() => onOpenDossierModal(app)}
+                                className="px-2.5 py-1 bg-slate-100 hover:bg-[#0B6B3A] hover:text-white text-slate-700 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                              >
+                                Dossier
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

@@ -37,6 +37,8 @@ export default function CommitteePortal({
   const [filterStage, setFilterStage] = useState('all');
   const [filterWard, setFilterWard] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterLevel, setFilterLevel] = useState('all');
+  const [filterVulnerability, setFilterVulnerability] = useState('all');
 
   // Fetch real data from PostgreSQL on mount
   const loadCommitteeData = async () => {
@@ -135,14 +137,28 @@ export default function CommitteePortal({
   };
 
   const exportNationalBoardSchedule = () => {
-    const headers = 'Application No,Applicant Name,National ID,Ward,Institution,Admission No,Course,Fee Balance,Awarded Amount,Stage\n';
-    const rows = applications
-      .map(
-        (a) =>
-          `"${a.application_no}","${a.full_name}","${a.national_id}","${a.ward?.name || 'N/A'}","${a.institution?.name || 'N/A'}","${a.admission_no}","${a.course_name || 'N/A'}",${a.fee_balance || 0},${a.approved_amount || a.recommended_amount || 0},"${a.stage}"`
-      )
+    const headers = 'Application No,Applicant Name,National ID,Phone,Ward,Institution,Institution Level,Admission No,Course / Grade,Fee Balance (KES),Requested (KES),Vulnerability,Approved Amount (KES),Stage,Date\n';
+    const rows = filteredApps
+      .map((a) => {
+        const appNo = `"${a.application_no || 'N/A'}"`;
+        const name = `"${String(a.full_name || '').replace(/"/g, '""')}"`;
+        const idNo = `"${a.national_id || 'N/A'}"`;
+        const phone = `"${a.phone || a.user?.phone || 'N/A'}"`;
+        const ward = `"${a.ward?.name || a.ward_name || 'N/A'}"`;
+        const inst = `"${String(a.institution?.name || a.institution_name || 'N/A').replace(/"/g, '""')}"`;
+        const level = `"${a.institution?.type || a.institution_type || 'N/A'}"`;
+        const adm = `"${a.admission_no || 'N/A'}"`;
+        const course = `"${String(a.course_name || a.grade_level || 'N/A').replace(/"/g, '""')}"`;
+        const balance = Number(a.fee_balance || 0);
+        const requested = Number(a.requested_amount || 0);
+        const vuln = `"${a.vulnerability_category || 'General'}"`;
+        const approved = Number(a.approved_amount || a.recommended_amount || 0);
+        const stage = `"${a.stage || 'N/A'}"`;
+        const date = `"${a.created_at ? new Date(a.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)}"`;
+        return `${appNo},${name},${idNo},${phone},${ward},${inst},${level},${adm},${course},${balance},${requested},${vuln},${approved},${stage},${date}`;
+      })
       .join('\n');
-    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -151,16 +167,35 @@ export default function CommitteePortal({
   };
 
   const filteredApps = applications.filter((a) => {
-    const matchesSearch =
-      (a.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (a.application_no || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (a.national_id || '').includes(searchQuery) ||
-      (a.admission_no || '').toLowerCase().includes(searchQuery.toLowerCase());
+    if (!a) return false;
+    const query = (searchQuery || '').toLowerCase().trim();
+    const matchesSearch = !query ||
+      (a.full_name || '').toLowerCase().includes(query) ||
+      (a.application_no || '').toLowerCase().includes(query) ||
+      String(a.national_id || '').includes(query) ||
+      (a.admission_no || '').toLowerCase().includes(query) ||
+      String(a.institution?.name || '').toLowerCase().includes(query);
 
     const matchesStage = filterStage === 'all' || a.stage === filterStage;
-    const matchesWard = filterWard === 'all' || String(a.ward_id) === String(filterWard);
+    const matchesWard = filterWard === 'all' || String(a.ward_id) === String(filterWard) || String(a.ward?.id) === String(filterWard);
 
-    return matchesSearch && matchesStage && matchesWard;
+    const instType = String(a.institution_type || a.institution?.type || '').toLowerCase();
+    const matchesLevel = filterLevel === 'all' ||
+      instType === filterLevel.toLowerCase() ||
+      (filterLevel === 'secondary' && (instType.includes('second') || instType.includes('high'))) ||
+      (filterLevel === 'tvet' && (instType.includes('tvet') || instType.includes('poly') || instType.includes('college'))) ||
+      (filterLevel === 'university' && (instType.includes('univ') || instType.includes('tertiary'))) ||
+      (filterLevel === 'special_needs' && (instType.includes('special') || String(a.vulnerability_category).toLowerCase().includes('pwd')));
+
+    const vuln = String(a.vulnerability_category || '').toLowerCase();
+    const matchesVuln = filterVulnerability === 'all' ||
+      (filterVulnerability === 'total_orphan' && vuln.includes('total')) ||
+      (filterVulnerability === 'partial_orphan' && vuln.includes('partial')) ||
+      (filterVulnerability === 'pwd' && (vuln.includes('pwd') || vuln.includes('disab') || a.is_pwd)) ||
+      (filterVulnerability === 'extreme_need' && (vuln.includes('extreme') || vuln.includes('needy') || vuln.includes('poor'))) ||
+      (filterVulnerability === 'general' && (vuln.includes('general') || !vuln));
+
+    return matchesSearch && matchesStage && matchesWard && matchesLevel && matchesVuln;
   });
 
   return (
@@ -278,11 +313,11 @@ export default function CommitteePortal({
                 />
               </div>
 
-              <div className="flex gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <select
                   value={filterStage}
                   onChange={(e) => setFilterStage(e.target.value)}
-                  className="w-1/2 p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none"
+                  className="p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none"
                 >
                   <option value="all">All Stages</option>
                   <option value="under_verification">Under Verification</option>
@@ -295,12 +330,37 @@ export default function CommitteePortal({
                 <select
                   value={filterWard}
                   onChange={(e) => setFilterWard(e.target.value)}
-                  className="w-1/2 p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none"
+                  className="p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none"
                 >
                   <option value="all">All Wards</option>
                   {wards.map((w) => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
+                </select>
+
+                <select
+                  value={filterLevel}
+                  onChange={(e) => setFilterLevel(e.target.value)}
+                  className="p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none"
+                >
+                  <option value="all">All Levels</option>
+                  <option value="secondary">Secondary</option>
+                  <option value="tvet">TVET / Poly</option>
+                  <option value="university">University</option>
+                  <option value="special_needs">Special Needs</option>
+                </select>
+
+                <select
+                  value={filterVulnerability}
+                  onChange={(e) => setFilterVulnerability(e.target.value)}
+                  className="p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs outline-none"
+                >
+                  <option value="all">All Quotas</option>
+                  <option value="total_orphan">Total Orphan</option>
+                  <option value="partial_orphan">Partial Orphan</option>
+                  <option value="pwd">PWD / Special</option>
+                  <option value="extreme_need">Extreme Need</option>
+                  <option value="general">General</option>
                 </select>
               </div>
             </div>
