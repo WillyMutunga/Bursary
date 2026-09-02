@@ -58,7 +58,7 @@ export default function AuthScreen({
         if (mappedRole === 'verification_officer') mappedRole = 'verification';
         if (mappedRole === 'finance_officer') mappedRole = 'finance';
         if (mappedRole === 'school_officer') mappedRole = 'school';
-        if (mappedRole === 'admin') mappedRole = 'analytics';
+        if (mappedRole === 'admin') mappedRole = 'admin';
 
         onLoginSuccess({
           role: mappedRole || 'applicant',

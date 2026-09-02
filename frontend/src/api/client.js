@@ -61,7 +61,14 @@ async function request(endpoint, options = {}) {
     try {
       return JSON.parse(text);
     } catch {
-      return { success: true, data: text };
+      if (text.includes('Imunify360') || text.includes('bot-protection') || text.trim().startsWith('<')) {
+        return {
+          success: false,
+          isHtml: true,
+          message: 'Server security check in progress. Please refresh page or verify connection.',
+        };
+      }
+      return { success: false, message: 'Invalid JSON response received from server.' };
     }
   } catch (error) {
     console.warn(`API call to ${endpoint} failed:`, error.message);

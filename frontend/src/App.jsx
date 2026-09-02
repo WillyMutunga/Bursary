@@ -28,6 +28,59 @@ import {
   initialStatistics,
 } from './mockData';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('Portal Rendering Error caught by ErrorBoundary:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 max-w-2xl mx-auto my-12 bg-white rounded-3xl border border-rose-200 shadow-xl space-y-4 text-center">
+          <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center mx-auto text-xl font-black">
+            ⚠
+          </div>
+          <h2 className="text-xl font-black text-slate-900">Desk Display Refresh</h2>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            An issue occurred while loading this administrative view: <br />
+            <code className="font-mono text-[11px] bg-slate-100 p-1.5 rounded text-rose-700 inline-block mt-1 max-w-full overflow-x-auto">
+              {this.state.error?.message || 'Component display error'}
+            </code>
+          </p>
+          <div className="flex justify-center gap-3 pt-2">
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.reload();
+              }}
+              className="px-5 py-2.5 bg-[#0B6B3A] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer hover:bg-[#084e2a]"
+            >
+              Reload Portal
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('auth_user');
+                window.location.href = '/';
+              }}
+              className="px-5 py-2.5 bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer hover:bg-slate-700"
+            >
+              Sign Out & Return Home
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   // authSession: null when on public landing page, or { role, user } when authenticated
   const [authSession, setAuthSession] = useState(null);
@@ -370,83 +423,85 @@ export default function App() {
 
             {/* Right Main Content Area */}
             <div className="flex-1 bg-[#F8FAFC] overflow-y-auto min-w-0 p-2 sm:p-4">
-              <div className="animate-in fade-in duration-150">
-                {authSession.role === 'applicant' && (
-                  <ApplicantPortal
-                    applications={applications}
-                    currentUser={authSession.user}
-                    onOpenAwardModal={handleOpenAwardModal}
-                    onOpenDossierModal={handleOpenDossierModal}
-                    onSubmitNewApplication={handleSubmitNewApplication}
-                    wards={wards}
-                    institutions={institutions}
-                    viewMode={applicantViewMode}
-                    setViewMode={setApplicantViewMode}
-                  />
-                )}
+              <ErrorBoundary>
+                <div className="animate-in fade-in duration-150">
+                  {authSession.role === 'applicant' && (
+                    <ApplicantPortal
+                      applications={applications}
+                      currentUser={authSession.user}
+                      onOpenAwardModal={handleOpenAwardModal}
+                      onOpenDossierModal={handleOpenDossierModal}
+                      onSubmitNewApplication={handleSubmitNewApplication}
+                      wards={wards}
+                      institutions={institutions}
+                      viewMode={applicantViewMode}
+                      setViewMode={setApplicantViewMode}
+                    />
+                  )}
 
-                {authSession.role === 'verification' && (
-                  <VerificationPortal
-                    applications={applications}
-                    wards={wards}
-                    institutions={institutions}
-                    onUpdateAppStage={handleUpdateAppStage}
-                    onRecordFieldVerification={handleRecordFieldVerification}
-                    onOpenDossierModal={handleOpenDossierModal}
-                  />
-                )}
+                  {authSession.role === 'verification' && (
+                    <VerificationPortal
+                      applications={applications}
+                      wards={wards}
+                      institutions={institutions}
+                      onUpdateAppStage={handleUpdateAppStage}
+                      onRecordFieldVerification={handleRecordFieldVerification}
+                      onOpenDossierModal={handleOpenDossierModal}
+                    />
+                  )}
 
-                {authSession.role === 'committee' && (
-                  <CommitteePortal
-                    applications={applications}
-                    wards={wards}
-                    onRecordDecision={handleRecordDecision}
-                    onOpenDossierModal={handleOpenDossierModal}
-                    onOpenInstitutionalLetterModal={handleOpenInstitutionalLetterModal}
-                  />
-                )}
+                  {authSession.role === 'committee' && (
+                    <CommitteePortal
+                      applications={applications}
+                      wards={wards}
+                      onRecordDecision={handleRecordDecision}
+                      onOpenDossierModal={handleOpenDossierModal}
+                      onOpenInstitutionalLetterModal={handleOpenInstitutionalLetterModal}
+                    />
+                  )}
 
-                {authSession.role === 'finance' && (
-                  <FinancePortal
-                    applications={applications}
-                    onCreatePaymentBatch={handleCreatePaymentBatch}
-                    onOpenInstitutionalLetterModal={handleOpenInstitutionalLetterModal}
-                  />
-                )}
+                  {authSession.role === 'finance' && (
+                    <FinancePortal
+                      applications={applications}
+                      onCreatePaymentBatch={handleCreatePaymentBatch}
+                      onOpenInstitutionalLetterModal={handleOpenInstitutionalLetterModal}
+                    />
+                  )}
 
-                {authSession.role === 'school' && (
-                  <SchoolPortal
-                    applications={applications}
-                    onConfirmStudent={handleConfirmStudent}
-                  />
-                )}
+                  {authSession.role === 'school' && (
+                    <SchoolPortal
+                      applications={applications}
+                      onConfirmStudent={handleConfirmStudent}
+                    />
+                  )}
 
-                {(authSession.role === 'admin' || authSession.role === 'super_admin' || authSession.role === 'analytics') && (
-                  <SuperAdminPortal
-                    wards={wards}
-                    institutions={institutions}
-                    auditLogs={auditLogs}
-                    activeSubTab={currentTab}
-                    onSelectSubTab={(tab) =>
-                      setActiveRoleTab((prev) => ({ ...prev, [authSession.role]: tab, admin: tab, analytics: tab }))
-                    }
-                  />
-                )}
+                  {(authSession.role === 'admin' || authSession.role === 'super_admin' || authSession.role === 'analytics') && (
+                    <SuperAdminPortal
+                      wards={wards}
+                      institutions={institutions}
+                      auditLogs={auditLogs}
+                      activeSubTab={currentTab}
+                      onSelectSubTab={(tab) =>
+                        setActiveRoleTab((prev) => ({ ...prev, [authSession.role]: tab, admin: tab, analytics: tab }))
+                      }
+                    />
+                  )}
 
-                {authSession.role === 'audit' && (
-                  <AuditTrailView
-                    auditLogs={auditLogs}
-                  />
-                )}
+                  {authSession.role === 'audit' && (
+                    <AuditTrailView
+                      auditLogs={auditLogs}
+                    />
+                  )}
 
-                {authSession.role === 'settings' && (
-                  <SystemSettingsView
-                    onSaveSettings={(config) => {
-                      logAudit('SETTINGS_UPDATED', 'settings', 'CONFIG', config);
-                    }}
-                  />
-                )}
-              </div>
+                  {authSession.role === 'settings' && (
+                    <SystemSettingsView
+                      onSaveSettings={(config) => {
+                        logAudit('SETTINGS_UPDATED', 'settings', 'CONFIG', config);
+                      }}
+                    />
+                  )}
+                </div>
+              </ErrorBoundary>
             </div>
 
           </div>

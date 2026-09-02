@@ -60,14 +60,14 @@ export default function SuperAdminPortal({
     setIsLoading(true);
     try {
       const res = await api.getAdminDashboard();
-      if (res && res.success && res.data) {
+      if (res && res.success && res.data && typeof res.data === 'object') {
         setAdminData(res.data);
-        setUsersList(res.data.users || []);
-        setLiveWards(res.data.wards || []);
-        setInstitutions(res.data.institutions || []);
-        setLiveAuditLogs(res.data.audit_logs || []);
-        if (res.data.statistics) {
-          setLiveStats(res.data.statistics);
+        if (Array.isArray(res.data.users)) setUsersList(res.data.users);
+        if (Array.isArray(res.data.wards)) setLiveWards(res.data.wards);
+        if (Array.isArray(res.data.institutions)) setInstitutions(res.data.institutions);
+        if (Array.isArray(res.data.audit_logs)) setLiveAuditLogs(res.data.audit_logs);
+        if (res.data.statistics && typeof res.data.statistics === 'object') {
+          setLiveStats((prev) => ({ ...prev, ...res.data.statistics }));
         }
         if (res.data.active_cycle) {
           setIsWindowOpen(Boolean(res.data.active_cycle.is_active));
@@ -195,12 +195,17 @@ export default function SuperAdminPortal({
     }
   };
 
+  const safeUsersList = Array.isArray(usersList) ? usersList : [];
+  const safeWards = Array.isArray(liveWards) ? liveWards : [];
+  const safeAuditLogs = Array.isArray(liveAuditLogs) ? liveAuditLogs : [];
+  const safeStats = liveStats && typeof liveStats === 'object' ? liveStats : {};
+
   const exportAuditCSV = () => {
     const headers = 'Log ID,Timestamp,Actor / User,Action Code,Module,Record ID\n';
-    const rows = liveAuditLogs
+    const rows = safeAuditLogs
       .map(
         (l) =>
-          `${l.id},"${l.created_at}","${l.user_name || 'System'}","${l.action}","${l.module}","${l.record_id || 'N/A'}"`
+          `${l?.id || ''},"${l?.created_at || ''}","${l?.user_name || 'System'}","${l?.action || ''}","${l?.module || ''}","${l?.record_id || 'N/A'}"`
       )
       .join('\n');
     const blob = new Blob([headers + rows], { type: 'text/csv' });
@@ -211,22 +216,28 @@ export default function SuperAdminPortal({
     a.click();
   };
 
-  const filteredUsers = usersList.filter((u) => {
+  const filteredUsers = safeUsersList.filter((u) => {
+    if (!u) return false;
+    const nameStr = String(u.name || '').toLowerCase();
+    const emailStr = String(u.email || '').toLowerCase();
+    const idStr = String(u.national_id || '');
+    const query = String(searchUserQuery || '').toLowerCase();
+
     const matchesSearch =
-      (u.name || '').toLowerCase().includes(searchUserQuery.toLowerCase()) ||
-      (u.email || '').toLowerCase().includes(searchUserQuery.toLowerCase()) ||
-      (u.national_id || '').includes(searchUserQuery);
+      nameStr.includes(query) ||
+      emailStr.includes(query) ||
+      idStr.includes(query);
     const matchesRole = filterUserRole === 'all' || u.role === filterUserRole;
     return matchesSearch && matchesRole;
   });
 
-  const totalWardBudget = liveWards.reduce(
-    (sum, w) => sum + (Number(w.budget_allocation) || 0),
+  const totalWardBudget = safeWards.reduce(
+    (sum, w) => sum + (Number(w?.budget_allocation) || 0),
     0
   );
 
-  const totalAllocated = Number(liveStats.allocated_funds_kes || 0);
-  const totalBudget = Number(liveStats.total_budget_kes || 30000000);
+  const totalAllocated = Number(safeStats.allocated_funds_kes || 0);
+  const totalBudget = Number(safeStats.total_budget_kes || 30000000);
   const budgetUtilization = totalBudget > 0 ? ((totalAllocated / totalBudget) * 100).toFixed(1) : 0;
 
   return (
@@ -350,7 +361,7 @@ export default function SuperAdminPortal({
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-black text-slate-900 tracking-tight">{liveStats.total_users || usersList.length}</p>
+          <p className="text-3xl font-black text-slate-900 tracking-tight">{safeStats.total_users || safeUsersList.length}</p>
           <div className="flex items-center gap-1.5 text-[10px] text-purple-700 font-bold bg-purple-50/80 px-2 py-0.5 rounded-lg w-fit">
             <span>●</span> Active Staff Accounts
           </div>
@@ -364,9 +375,9 @@ export default function SuperAdminPortal({
               <FileText className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-black text-slate-900 tracking-tight">{liveStats.total_applications}</p>
+          <p className="text-3xl font-black text-slate-900 tracking-tight">{safeStats.total_applications || 0}</p>
           <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg w-fit">
-            <span>✓</span> {liveStats.approved_applications} Awards Approved
+            <span>✓</span> {safeStats.approved_applications || 0} Awards Approved
           </div>
         </div>
 
@@ -378,7 +389,7 @@ export default function SuperAdminPortal({
               <MapPin className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-black text-slate-900 tracking-tight">{liveWards.length}</p>
+          <p className="text-3xl font-black text-slate-900 tracking-tight">{safeWards.length}</p>
           <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-lg w-fit">
             <span>🏛️</span> Kibwezi West Wards
           </div>
@@ -425,7 +436,7 @@ export default function SuperAdminPortal({
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Staff Accounts ({usersList.length})
+          Staff Accounts ({safeUsersList.length})
         </button>
         <button
           onClick={() => setActiveSubTab('wards')}
@@ -435,7 +446,7 @@ export default function SuperAdminPortal({
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Ward Budgets ({liveWards.length})
+          Ward Budgets ({safeWards.length})
         </button>
         <button
           onClick={() => setActiveSubTab('audit')}
@@ -445,7 +456,7 @@ export default function SuperAdminPortal({
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Audit Trail ({liveAuditLogs.length})
+          Audit Trail ({safeAuditLogs.length})
         </button>
       </div>
 
@@ -509,7 +520,7 @@ export default function SuperAdminPortal({
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
                 <span className="text-slate-600">Total Audit Events:</span>
-                <strong className="font-mono text-purple-800 font-bold">{liveAuditLogs.length} Events</strong>
+                <strong className="font-mono text-purple-800 font-bold">{safeAuditLogs.length} Events</strong>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
                 <span className="text-slate-600">Connection Status:</span>
@@ -653,7 +664,7 @@ export default function SuperAdminPortal({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {liveWards.map((w) => (
+            {safeWards.map((w) => (
               <div key={w.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 hover-card-lift">
                 <div className="flex justify-between items-center">
                   <h4 className="font-bold text-sm text-slate-900">{w.name}</h4>
@@ -710,7 +721,7 @@ export default function SuperAdminPortal({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
-                {liveAuditLogs.map((l) => (
+                {safeAuditLogs.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-50">
                     <td className="p-3 text-slate-400 font-bold">#{l.id}</td>
                     <td className="p-3 text-slate-500">{new Date(l.created_at || Date.now()).toLocaleString('en-GB')}</td>
