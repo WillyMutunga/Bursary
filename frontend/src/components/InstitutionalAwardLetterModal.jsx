@@ -47,6 +47,42 @@ function numberToKenyanWords(num) {
   return `Kenya Shillings ${words.trim()} Only`;
 }
 
+// Accredited Kenya Institutional Canonical Registry & Normalization
+export const KNOWN_CANONICAL_INSTITUTIONS = [
+  { match: /kenyatta\s*uni|^\s*ku\s*$/i, canonical: 'Kenyatta University (KU)' },
+  { match: /university\s*of\s*nairobi|^\s*uon\s*$/i, canonical: 'University of Nairobi (UoN)' },
+  { match: /jomo\s*kenyatta|jkuat/i, canonical: 'Jomo Kenyatta University of Agriculture and Technology (JKUAT)' },
+  { match: /moi\s*uni/i, canonical: 'Moi University' },
+  { match: /egerton/i, canonical: 'Egerton University' },
+  { match: /maseno/i, canonical: 'Maseno University' },
+  { match: /mount\s*kenya|mku/i, canonical: 'Mount Kenya University (MKU)' },
+  { match: /machakos/i, canonical: 'Machakos University' },
+  { match: /south\s*eastern|seku/i, canonical: 'South Eastern Kenya University (SEKU)' },
+  { match: /kabete/i, canonical: 'Kabete National Polytechnic' },
+  { match: /kmtc|medical\s*training/i, canonical: 'Kenya Medical Training College (KMTC)' },
+  { match: /makueni/i, canonical: 'Makueni Technical College' },
+  { match: /kitise/i, canonical: 'Kitise Vocational Training Centre' },
+  { match: /kibwezi/i, canonical: 'Kibwezi Technical Training Institute' },
+  { match: /st\.\s*francis|francis\s*special/i, canonical: 'St. Francis Special Needs School' },
+];
+
+export function normalizeInstitutionName(rawName) {
+  if (!rawName) return 'Kenyatta University (KU)';
+  const clean = String(rawName).trim();
+  
+  for (const item of KNOWN_CANONICAL_INSTITUTIONS) {
+    if (item.match.test(clean)) {
+      return item.canonical;
+    }
+  }
+
+  // Generic canonical title-casing
+  return clean
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (c) => c.toUpperCase())
+    .replace(/\b(Ku|Uon|Jkuat|Mku|Seku|Kmtc|Tti|Vtc|Cbc|Kcse|Tveta)\b/gi, (m) => m.toUpperCase());
+}
+
 // Accredited Kenya Institutional Postal & Campus Registry
 const KNOWN_INSTITUTION_DETAILS = {
   'Kenyatta University (KU)': {
@@ -92,18 +128,18 @@ export default function InstitutionalAwardLetterModal({
 }) {
   if (!isOpen) return null;
 
-  // 1. Group beneficiaries by institution from comprehensive application pool
+  // 1. Group beneficiaries by institution from comprehensive application pool with smart normalization
   const instMap = useMemo(() => {
     const map = {};
     const sourceList = (allApplications && allApplications.length > 0) ? allApplications : beneficiaries;
 
     sourceList.forEach((b) => {
-      let instName = b.institution?.name || b.institution_name;
-      if (!instName && b.institution_id && Array.isArray(institutions)) {
+      let rawName = b.institution?.name || b.institution_name;
+      if (!rawName && b.institution_id && Array.isArray(institutions)) {
         const found = institutions.find((i) => i.id === b.institution_id);
-        if (found) instName = found.name;
+        if (found) rawName = found.name;
       }
-      if (!instName) instName = 'Kenyatta University (KU)';
+      const instName = normalizeInstitutionName(rawName);
 
       if (!map[instName]) {
         map[instName] = [];
@@ -119,10 +155,11 @@ export default function InstitutionalAwardLetterModal({
 
   // 2. Initial selected institution: prefer prop if valid and matches, else first actual beneficiary institution
   const initialInstName = useMemo(() => {
-    if (propInstitution?.name && propInstitution.name !== 'University of Nairobi (UoN)' && instMap[propInstitution.name]) {
-      return propInstitution.name;
+    const normalizedProp = propInstitution?.name ? normalizeInstitutionName(propInstitution.name) : null;
+    if (normalizedProp && normalizedProp !== 'University of Nairobi (UoN)' && instMap[normalizedProp]) {
+      return normalizedProp;
     }
-    return availableInstNames[0] || propInstitution?.name || 'Kenyatta University (KU)';
+    return availableInstNames[0] || normalizedProp || 'Kenyatta University (KU)';
   }, [propInstitution, instMap, availableInstNames]);
 
   const [selectedInstName, setSelectedInstName] = useState(initialInstName);
@@ -133,7 +170,7 @@ export default function InstitutionalAwardLetterModal({
     }
   }, [initialInstName]);
 
-  const activeInstitution = institutions.find((i) => i.name === selectedInstName) || {
+  const activeInstitution = (institutions || []).find((i) => normalizeInstitutionName(i.name) === selectedInstName) || {
     name: selectedInstName,
     code: (instMap[selectedInstName]?.[0]?.institution?.code) || 'INST-001'
   };

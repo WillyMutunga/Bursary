@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import DocumentViewerModal from './DocumentViewerModal';
+import { normalizeInstitutionName } from './InstitutionalAwardLetterModal';
 
 export default function CommitteePortal({
   applications: parentApplications = [],
@@ -456,16 +457,14 @@ export default function CommitteePortal({
                     <button
                       type="button"
                       onClick={() => {
-                        const targetInstName = selectedApp.institution?.name || selectedApp.institution_name;
-                        const targetInstId = selectedApp.institution_id || selectedApp.institution?.id;
+                        const targetCanonical = normalizeInstitutionName(selectedApp.institution?.name || selectedApp.institution_name);
                         const instBeneficiaries = (applications || []).filter((a) => {
-                          if (targetInstId && (a.institution_id === targetInstId || a.institution?.id === targetInstId)) return true;
-                          if (targetInstName && (a.institution?.name === targetInstName || a.institution_name === targetInstName)) return true;
-                          return false;
+                          const aCanonical = normalizeInstitutionName(a.institution?.name || a.institution_name);
+                          return aCanonical === targetCanonical;
                         });
                         if (onOpenInstitutionalLetterModal) {
                           onOpenInstitutionalLetterModal(
-                            selectedApp.institution || { name: targetInstName },
+                            { name: targetCanonical },
                             instBeneficiaries.length > 0 ? instBeneficiaries : [selectedApp]
                           );
                         }

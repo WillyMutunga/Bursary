@@ -158,6 +158,26 @@ class ApplicantController extends Controller
 
         $instName = $request->input('institution_name') ?: $request->input('institution');
         if ($instName) {
+            $trimName = trim($instName);
+            // Canonical normalization for known universities/colleges
+            $canonicalName = match (true) {
+                (bool) preg_match('/kenyatta\s*uni|^\s*ku\s*$/i', $trimName) => 'Kenyatta University (KU)',
+                (bool) preg_match('/university\s*of\s*nairobi|^\s*uon\s*$/i', $trimName) => 'University of Nairobi (UoN)',
+                (bool) preg_match('/jomo\s*kenyatta|jkuat/i', $trimName) => 'Jomo Kenyatta University of Agriculture and Technology (JKUAT)',
+                (bool) preg_match('/moi\s*uni/i', $trimName) => 'Moi University',
+                (bool) preg_match('/egerton/i', $trimName) => 'Egerton University',
+                (bool) preg_match('/maseno/i', $trimName) => 'Maseno University',
+                (bool) preg_match('/mount\s*kenya|mku/i', $trimName) => 'Mount Kenya University (MKU)',
+                (bool) preg_match('/machakos/i', $trimName) => 'Machakos University',
+                (bool) preg_match('/south\s*eastern|seku/i', $trimName) => 'South Eastern Kenya University (SEKU)',
+                (bool) preg_match('/kabete/i', $trimName) => 'Kabete National Polytechnic',
+                (bool) preg_match('/kmtc|medical\s*training/i', $trimName) => 'Kenya Medical Training College (KMTC)',
+                (bool) preg_match('/makueni/i', $trimName) => 'Makueni Technical College',
+                (bool) preg_match('/kitise/i', $trimName) => 'Kitise Vocational Training Centre',
+                (bool) preg_match('/kibwezi/i', $trimName) => 'Kibwezi Technical Training Institute',
+                default => ucwords(strtolower($trimName)),
+            };
+
             $eduLevel = strtolower($request->input('education_level', 'university'));
             $allowedType = match ($eduLevel) {
                 'secondary' => 'secondary',
@@ -166,15 +186,19 @@ class ApplicantController extends Controller
                 default => 'university',
             };
 
-            $baseCode = strtoupper(\Illuminate\Support\Str::slug(trim($instName)));
-            $inst = \App\Models\Institution::firstOrCreate(
-                ['name' => trim($instName)],
-                [
+            $inst = \App\Models\Institution::whereRaw('LOWER(name) = ?', [strtolower($canonicalName)])
+                ->orWhere('name', $canonicalName)
+                ->first();
+
+            if (!$inst) {
+                $baseCode = strtoupper(\Illuminate\Support\Str::slug(trim($canonicalName)));
+                $inst = \App\Models\Institution::create([
+                    'name' => $canonicalName,
                     'code' => substr($baseCode, 0, 20) . '-' . rand(100, 999),
                     'type' => $allowedType,
                     'county' => 'Kenya',
-                ]
-            );
+                ]);
+            }
             $validated['institution_id'] = $inst->id;
         } else {
             $validated['institution_id'] = $request->input('institution_id') ?: 1;

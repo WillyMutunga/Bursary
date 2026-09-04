@@ -17,7 +17,7 @@ import SystemSettingsView from './components/SystemSettingsView';
 import AwardLetterModal from './components/AwardLetterModal';
 import StatusTrackerModal from './components/StatusTrackerModal';
 import ApplicationDossierModal from './components/ApplicationDossierModal';
-import InstitutionalAwardLetterModal from './components/InstitutionalAwardLetterModal';
+import InstitutionalAwardLetterModal, { normalizeInstitutionName } from './components/InstitutionalAwardLetterModal';
 
 import { api } from './api/client';
 import {
@@ -360,17 +360,16 @@ export default function App() {
   const handleOpenInstitutionalLetterModal = (institution, beneficiaries) => {
     let targetBeneficiaries = beneficiaries;
 
-    // Resolve target institution name and ID
-    const instName = institution?.name || (targetBeneficiaries && targetBeneficiaries[0]?.institution?.name) || targetBeneficiaries?.[0]?.institution_name;
-    const instId = institution?.id || (targetBeneficiaries && targetBeneficiaries[0]?.institution_id);
+    // Resolve target canonical institution name
+    const rawInstName = institution?.name || (targetBeneficiaries && targetBeneficiaries[0]?.institution?.name) || targetBeneficiaries?.[0]?.institution_name;
+    const targetCanonical = rawInstName ? normalizeInstitutionName(rawInstName) : null;
 
     // If only 1 applicant was passed or no beneficiaries, pull ALL matching applicants from applications list
     if (!targetBeneficiaries || targetBeneficiaries.length <= 1) {
-      if (instName || instId) {
+      if (targetCanonical) {
         const matchingApps = (applications || []).filter((a) => {
-          if (instId && (a.institution_id === instId || a.institution?.id === instId)) return true;
-          if (instName && (a.institution?.name === instName || a.institution_name === instName)) return true;
-          return false;
+          const aCanonical = normalizeInstitutionName(a.institution?.name || a.institution_name);
+          return aCanonical === targetCanonical;
         });
         if (matchingApps.length > 0) {
           targetBeneficiaries = matchingApps;
@@ -386,9 +385,7 @@ export default function App() {
     }
 
     const autoInst = institution
-      || targetBeneficiaries[0]?.institution
-      || (institutions && institutions.find(i => i.id === targetBeneficiaries[0]?.institution_id))
-      || { name: targetBeneficiaries[0]?.institution_name || 'Kenyatta University (KU)', code: 'KU-002' };
+      || { name: targetCanonical || 'Kenyatta University (KU)', code: 'KU-002' };
 
     setSelectedInstLetter({
       institution: autoInst,

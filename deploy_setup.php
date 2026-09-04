@@ -158,6 +158,22 @@ try {
         ]
     );
 
+    // Merge any duplicate KENYATTA UNIVERSITY institutions into Kenyatta University (KU)
+    $otherKus = \App\Models\Institution::where('id', '!=', $ku->id)
+        ->whereRaw('LOWER(name) LIKE ?', ['%kenyatta%'])
+        ->get();
+    foreach ($otherKus as $dup) {
+        \App\Models\Application::where('institution_id', $dup->id)->update([
+            'institution_id' => $ku->id,
+            'institution_postal_address' => 'P.O. Box 43844 - 00100, Nairobi',
+            'institution_campus_branch' => 'Main Campus - Along Thika Superhighway',
+        ]);
+        try {
+            $dup->delete();
+        } catch (\Exception $e) {}
+        echo "✓ Consolidated duplicate institution record (ID: {$dup->id}, {$dup->name}) into {$ku->name}\n";
+    }
+
     if ($applicant) {
         \App\Models\Application::updateOrCreate(
             ['application_no' => 'CDF/BURS/2026/000001'],
