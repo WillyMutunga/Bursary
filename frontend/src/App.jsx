@@ -358,7 +358,33 @@ export default function App() {
   };
 
   const handleOpenInstitutionalLetterModal = (institution, beneficiaries) => {
-    const targetBeneficiaries = beneficiaries || applications.filter(a => a.stage === 'approved' || a.stage === 'paid');
+    let targetBeneficiaries = beneficiaries;
+
+    // Resolve target institution name and ID
+    const instName = institution?.name || (targetBeneficiaries && targetBeneficiaries[0]?.institution?.name) || targetBeneficiaries?.[0]?.institution_name;
+    const instId = institution?.id || (targetBeneficiaries && targetBeneficiaries[0]?.institution_id);
+
+    // If only 1 applicant was passed or no beneficiaries, pull ALL matching applicants from applications list
+    if (!targetBeneficiaries || targetBeneficiaries.length <= 1) {
+      if (instName || instId) {
+        const matchingApps = (applications || []).filter((a) => {
+          if (instId && (a.institution_id === instId || a.institution?.id === instId)) return true;
+          if (instName && (a.institution?.name === instName || a.institution_name === instName)) return true;
+          return false;
+        });
+        if (matchingApps.length > 0) {
+          targetBeneficiaries = matchingApps;
+        }
+      }
+    }
+
+    if (!targetBeneficiaries || targetBeneficiaries.length === 0) {
+      targetBeneficiaries = (applications || []).filter(a => a.stage === 'approved' || a.stage === 'paid' || a.stage === 'awarded' || a.stage === 'committee_review');
+      if (targetBeneficiaries.length === 0) {
+        targetBeneficiaries = applications || [];
+      }
+    }
+
     const autoInst = institution
       || targetBeneficiaries[0]?.institution
       || (institutions && institutions.find(i => i.id === targetBeneficiaries[0]?.institution_id))
@@ -554,6 +580,7 @@ export default function App() {
         onClose={() => setIsInstLetterModalOpen(false)}
         institution={selectedInstLetter.institution}
         beneficiaries={selectedInstLetter.beneficiaries}
+        allApplications={applications}
         institutions={institutions}
       />
 

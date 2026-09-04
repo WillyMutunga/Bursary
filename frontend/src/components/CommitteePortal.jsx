@@ -455,7 +455,21 @@ export default function CommitteePortal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => onOpenInstitutionalLetterModal && onOpenInstitutionalLetterModal(selectedApp.institution, [selectedApp])}
+                      onClick={() => {
+                        const targetInstName = selectedApp.institution?.name || selectedApp.institution_name;
+                        const targetInstId = selectedApp.institution_id || selectedApp.institution?.id;
+                        const instBeneficiaries = (applications || []).filter((a) => {
+                          if (targetInstId && (a.institution_id === targetInstId || a.institution?.id === targetInstId)) return true;
+                          if (targetInstName && (a.institution?.name === targetInstName || a.institution_name === targetInstName)) return true;
+                          return false;
+                        });
+                        if (onOpenInstitutionalLetterModal) {
+                          onOpenInstitutionalLetterModal(
+                            selectedApp.institution || { name: targetInstName },
+                            instBeneficiaries.length > 0 ? instBeneficiaries : [selectedApp]
+                          );
+                        }
+                      }}
                       className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold rounded-lg text-[11px] flex items-center gap-1 border border-purple-200 transition-colors"
                     >
                       <Building2 className="w-3.5 h-3.5 text-purple-700" /> Institutional Schedule

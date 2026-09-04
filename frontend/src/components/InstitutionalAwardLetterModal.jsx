@@ -86,15 +86,18 @@ export default function InstitutionalAwardLetterModal({
   onClose,
   institution: propInstitution,
   beneficiaries = [],
+  allApplications = [],
   institutions = [],
   chequeDetails = { chequeNo: 'EFT-2026-992144', batchNo: 'BATCH-2026-08', date: '22nd August 2026' }
 }) {
   if (!isOpen) return null;
 
-  // 1. Group beneficiaries by institution
+  // 1. Group beneficiaries by institution from comprehensive application pool
   const instMap = useMemo(() => {
     const map = {};
-    beneficiaries.forEach((b) => {
+    const sourceList = (allApplications && allApplications.length > 0) ? allApplications : beneficiaries;
+
+    sourceList.forEach((b) => {
       let instName = b.institution?.name || b.institution_name;
       if (!instName && b.institution_id && Array.isArray(institutions)) {
         const found = institutions.find((i) => i.id === b.institution_id);
@@ -105,10 +108,12 @@ export default function InstitutionalAwardLetterModal({
       if (!map[instName]) {
         map[instName] = [];
       }
-      map[instName].push(b);
+      if (!map[instName].some(existing => existing.id === b.id || (existing.national_id && existing.national_id === b.national_id))) {
+        map[instName].push(b);
+      }
     });
     return map;
-  }, [beneficiaries, institutions]);
+  }, [beneficiaries, allApplications, institutions]);
 
   const availableInstNames = Object.keys(instMap);
 
