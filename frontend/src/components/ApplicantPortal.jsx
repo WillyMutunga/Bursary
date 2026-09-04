@@ -7,6 +7,7 @@ import {
   PlusCircle, AlertTriangle, Paperclip, Check, Trash2, Eye, Activity
 } from 'lucide-react';
 import { api } from '../api/client';
+import InstitutionAutocomplete from './InstitutionAutocomplete';
 
 export default function ApplicantPortal({
   applications = [],
@@ -1152,21 +1153,26 @@ export default function ApplicantPortal({
                         ? 'College / TVET / Polytechnic Name'
                         : 'Special Needs School / Centre'}
                     </label>
-                    <input
-                      type="text"
+                    <InstitutionAutocomplete
+                      value={formData.institution_name}
+                      educationLevel={formData.education_level}
                       placeholder={
                         formData.education_level === 'secondary'
-                          ? 'e.g. Makindu Boys High School, St. Joseph Girls, Emali Secondary'
+                          ? 'Search e.g. Makindu Boys High, St. Joseph Girls, Emali Sec...'
                           : formData.education_level === 'university'
-                          ? 'e.g. University of Nairobi, Kenyatta University, Machakos University'
+                          ? 'Search e.g. Kenyatta University, University of Nairobi, Machakos Univ...'
                           : formData.education_level === 'college_tvet'
-                          ? 'e.g. Kabete National Polytechnic, KMTC Nairobi, Kitise VTC'
-                          : 'e.g. St. Francis Special Needs School'
+                          ? 'Search e.g. Kabete National Poly, KMTC, Kitise VTC...'
+                          : 'Search Special Needs School / Centre...'
                       }
-                      value={formData.institution_name}
-                      onChange={(e) => setFormData({ ...formData, institution_name: e.target.value })}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
-                      required
+                      onChange={(name, details) => {
+                        const updates = { institution_name: name };
+                        if (details) {
+                          if (details.address) updates.institution_postal_address = details.address;
+                          if (details.campus) updates.institution_campus_branch = details.campus;
+                        }
+                        setFormData((prev) => ({ ...prev, ...updates }));
+                      }}
                     />
                   </div>
 
