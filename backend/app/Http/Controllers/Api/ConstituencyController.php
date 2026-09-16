@@ -11,6 +11,8 @@ use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ConstituencyController extends Controller
 {
@@ -99,94 +101,110 @@ class ConstituencyController extends Controller
             'admin_phone' => 'nullable|string',
         ]);
 
-        $slug = Str::slug($validated['name']);
-        // Ensure slug uniqueness
-        $baseSlug = $slug;
-        $counter = 1;
-        while (Constituency::where('slug', $slug)->exists()) {
-            $slug = "{$baseSlug}-{$counter}";
-            $counter++;
-        }
+        try {
+            return DB::transaction(function () use ($validated, $request) {
+                $slug = Str::slug($validated['name']);
+                // Ensure slug uniqueness
+                $baseSlug = $slug;
+                $counter = 1;
+                while (Constituency::where('slug', $slug)->exists()) {
+                    $slug = "{$baseSlug}-{$counter}";
+                    $counter++;
+                }
 
-        $constituency = Constituency::create([
-            'name' => $validated['name'],
-            'slug' => $slug,
-            'code' => strtoupper($validated['code']),
-            'county' => $validated['county'],
-            'mp_name' => $validated['mp_name'] ?? 'Hon. Member of Parliament',
-            'mp_title' => $validated['mp_title'] ?? 'Member of National Assembly',
-            'mp_message' => $validated['mp_message'] ?? null,
-            'mp_photo_url' => $validated['mp_photo_url'] ?? null,
-            'fund_account_manager' => $validated['fund_account_manager'] ?? 'Constituency Fund Account Manager',
-            'office_postal_address' => $validated['office_postal_address'] ?? 'P.O. Box Accredited',
-            'office_location' => $validated['office_location'] ?? 'NG-CDF Constituency Office',
-            'office_email' => $validated['office_email'] ?? null,
-            'office_phone' => $validated['office_phone'] ?? null,
-            'primary_color' => $validated['primary_color'] ?? '#0B6B3A',
-            'is_active' => true,
-        ]);
-
-        // Create initial wards if provided
-        if (!empty($validated['wards'])) {
-            foreach ($validated['wards'] as $index => $wData) {
-                Ward::create([
-                    'constituency_id' => $constituency->id,
-                    'name' => $wData['name'],
-                    'code' => $wData['code'] ?? ($constituency->code . '-W0' . ($index + 1)),
-                    'sub_county' => $constituency->name,
-                    'population' => $wData['population'] ?? 40000,
-                    'budget_allocation' => $wData['budget_allocation'] ?? 5000000.00,
-                    'representative_name' => $wData['representative_name'] ?? null,
+                $constituency = Constituency::create([
+                    'name' => $validated['name'],
+                    'slug' => $slug,
+                    'code' => strtoupper($validated['code']),
+                    'county' => $validated['county'],
+                    'mp_name' => $validated['mp_name'] ?? 'Hon. Member of Parliament',
+                    'mp_title' => $validated['mp_title'] ?? 'Member of National Assembly',
+                    'mp_message' => $validated['mp_message'] ?? null,
+                    'mp_photo_url' => $validated['mp_photo_url'] ?? null,
+                    'fund_account_manager' => $validated['fund_account_manager'] ?? 'Constituency Fund Account Manager',
+                    'office_postal_address' => $validated['office_postal_address'] ?? 'P.O. Box Accredited',
+                    'office_location' => $validated['office_location'] ?? 'NG-CDF Constituency Office',
+                    'office_email' => $validated['office_email'] ?? null,
+                    'office_phone' => $validated['office_phone'] ?? null,
+                    'primary_color' => $validated['primary_color'] ?? '#0B6B3A',
+                    'is_active' => true,
                 ]);
-            }
+
+                // Create initial wards if provided
+                if (!empty($validated['wards'])) {
+                    foreach ($validated['wards'] as $index => $wData) {
+                        Ward::create([
+                            'constituency_id' => $constituency->id,
+                            'name' => $wData['name'],
+                            'code' => $wData['code'] ?? ($constituency->code . '-W0' . ($index + 1)),
+                            'sub_county' => $constituency->name,
+                            'population' => $wData['population'] ?? 40000,
+                            'budget_allocation' => $wData['budget_allocation'] ?? 5000000.00,
+                            'representative_name' => $wData['representative_name'] ?? null,
+                        ]);
+                    }
+                }
+
+                // Create default initial bursary cycle
+                BursaryCycle::create([
+                    'constituency_id' => $constituency->id,
+                    'title' => '2026/2027 Financial Year (Cycle 1)',
+                    'academic_year' => '2026/2027',
+                    'total_budget' => 30000000.00,
+                    'allocated_amount' => 0.00,
+                    'disbursed_amount' => 0.00,
+                    'start_date' => now()->startOfYear(),
+                    'end_date' => now()->endOfYear(),
+                    'is_active' => true,
+                    'status' => 'open',
+                    'description' => "Annual Constituency Bursary Allocation for {$constituency->name}",
+                ]);
+
+                // Create constituency staff user if provided
+                $adminUser = null;
+                if (!empty($validated['admin_email'])) {
+                    $adminUser = User::create([
+                        'constituency_id' => $constituency->id,
+                        'name' => $validated['admin_name'] ?? ($constituency->name . ' Fund Manager'),
+                        'email' => $validated['admin_email'],
+                        'phone' => $validated['admin_phone'] ?? $constituency->office_phone,
+                        'role' => 'admin',
+                        'password' => Hash::make($validated['admin_password'] ?? 'William#20'),
+                        'designation' => 'Constituency Fund Account Manager',
+                        'is_active' => true,
+                    ]);
+                }
+
+                try {
+                    AuditLog::create([
+                        'constituency_id' => $constituency->id,
+                        'user_id' => auth()->id(),
+                        'user_name' => auth()->user()?->name ?? 'System Super Admin',
+                        'user_role' => auth()->user()?->role ?? 'super_admin',
+                        'action' => 'CONSTITUENCY_REGISTERED',
+                        'module' => 'Constituency Management',
+                        'record_id' => (string) $constituency->id,
+                        'new_values' => $constituency->toArray(),
+                        'ip_address' => $request->ip() ?? '127.0.0.1',
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning("Audit log notice: " . $e->getMessage());
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Constituency '{$constituency->name}' successfully onboarded!",
+                    'data' => $constituency->load(['wards', 'activeCycle']),
+                    'admin_user' => $adminUser,
+                ], 201);
+            });
+        } catch (\Throwable $ex) {
+            Log::error("Failed to onboard constituency: " . $ex->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to onboard constituency: ' . $ex->getMessage(),
+            ], 500);
         }
-
-        // Create default initial bursary cycle
-        BursaryCycle::create([
-            'constituency_id' => $constituency->id,
-            'title' => '2026/2027 Financial Year (Cycle 1)',
-            'academic_year' => '2026/2027',
-            'total_budget' => 30000000.00,
-            'allocated_amount' => 0.00,
-            'disbursed_amount' => 0.00,
-            'start_date' => now()->startOfYear(),
-            'end_date' => now()->endOfYear(),
-            'is_active' => true,
-            'status' => 'open',
-            'description' => "Annual Constituency Bursary Allocation for {$constituency->name}",
-        ]);
-
-        // Create constituency staff user if provided
-        $adminUser = null;
-        if (!empty($validated['admin_email'])) {
-            $adminUser = User::create([
-                'constituency_id' => $constituency->id,
-                'name' => $validated['admin_name'] ?? ($constituency->name . ' Fund Manager'),
-                'email' => $validated['admin_email'],
-                'phone' => $validated['admin_phone'] ?? $constituency->office_phone,
-                'role' => 'admin',
-                'password' => Hash::make($validated['admin_password'] ?? 'William#20'),
-                'designation' => 'Constituency Fund Account Manager',
-                'is_active' => true,
-            ]);
-        }
-
-        AuditLog::create([
-            'constituency_id' => $constituency->id,
-            'user_id' => auth()->id() ?? 1,
-            'action' => 'CONSTITUENCY_REGISTERED',
-            'entity_type' => 'Constituency',
-            'entity_id' => $constituency->id,
-            'new_values' => $constituency->toArray(),
-            'ip_address' => $request->ip(),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => "Constituency '{$constituency->name}' successfully onboarded!",
-            'data' => $constituency->load(['wards', 'activeCycle']),
-            'admin_user' => $adminUser,
-        ], 201);
     }
 
     /**
