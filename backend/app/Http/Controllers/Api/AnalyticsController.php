@@ -14,19 +14,36 @@ use Illuminate\Http\Request;
 
 class AnalyticsController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        $activeCycle = BursaryCycle::where('is_active', true)->first();
+        $constituencyId = $request->query('constituency_id') ?: ($request->user() ? $request->user()->constituency_id : null);
+
+        $cycleQuery = BursaryCycle::where('is_active', true);
+        $appQuery = Application::query();
+        $wardQuery = Ward::query();
+
+        if ($constituencyId) {
+            $cycleQuery->where('constituency_id', $constituencyId);
+            $appQuery->where('constituency_id', $constituencyId);
+            $wardQuery->where('constituency_id', $constituencyId);
+        }
+
+        $activeCycle = $cycleQuery->first() ?: BursaryCycle::where('is_active', true)->first();
         $totalBudget = $activeCycle ? (float)$activeCycle->total_budget : 30000000.00;
 
-        $totalApplications = Application::count();
-        $verifiedCount = Application::whereIn('stage', ['committee_review', 'approved', 'rejected', 'deferred', 'awarded', 'paid'])->count();
-        $recommendedCount = Application::where('total_score', '>=', 60)->count();
-        $approvedCount = Application::whereIn('stage', ['approved', 'awarded', 'paid'])->count();
-        $disbursedCount = Application::where('stage', 'paid')->count();
-        $fundsAllocated = (float)Application::whereIn('stage', ['approved', 'awarded', 'paid'])->sum('approved_amount');
+        $totalApplications = (clone $appQuery)->count();
+        $verifiedCount = (clone $appQuery)->whereIn('stage', ['committee_review', 'approved', 'rejected', 'deferred', 'awarded', 'paid'])->count();
+        $recommendedCount = (clone $appQuery)->where('total_score', '>=', 60)->count();
+        $approvedCount = (clone $appQuery)->whereIn('stage', ['approved', 'awarded', 'paid'])->count();
+        $disbursedCount = (clone $appQuery)->where('stage', 'paid')->count();
+        $fundsAllocated = (float)(clone $appQuery)->whereIn('stage', ['approved', 'awarded', 'paid'])->sum('approved_amount');
 
-        $wards = Ward::all()->map(function ($w) {
+        $wardsList = $wardQuery->get();
+        if ($wardsList->isEmpty() && $constituencyId) {
+            $wardsList = Ward::all();
+        }
+
+        $wards = $wardsList->map(function ($w) {
             $apps = Application::where('ward_id', $w->id);
             $appCount = $apps->count();
             $approved = (clone $apps)->whereIn('stage', ['approved', 'awarded', 'paid'])->count();

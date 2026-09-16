@@ -16,6 +16,11 @@ class CommitteeController extends Controller
     {
         $query = Application::with(['ward', 'institution', 'documents', 'identityVerifications', 'fieldVerifications', 'committeeDecisions']);
 
+        $constituencyId = $request->query('constituency_id') ?: ($request->user() ? $request->user()->constituency_id : null);
+        if ($constituencyId) {
+            $query->where('constituency_id', $constituencyId);
+        }
+
         if ($request->filled('ward_id')) {
             $query->where('ward_id', $request->ward_id);
         }

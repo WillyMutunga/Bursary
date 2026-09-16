@@ -14,23 +14,36 @@ use Illuminate\Support\Str;
 
 class FinanceController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        $cycle = BursaryCycle::where('is_active', true)->first();
+        $constituencyId = $request->query('constituency_id') ?: ($request->user() ? $request->user()->constituency_id : null);
+
+        $cycleQuery = BursaryCycle::where('is_active', true);
+        $appQuery = Application::query();
+        $batchQuery = PaymentBatch::with(['cycle', 'creator', 'approver'])->withCount('payments');
+
+        if ($constituencyId) {
+            $cycleQuery->where('constituency_id', $constituencyId);
+            $appQuery->where('constituency_id', $constituencyId);
+            $batchQuery->where('constituency_id', $constituencyId);
+        }
+
+        $cycle = $cycleQuery->first() ?: BursaryCycle::where('is_active', true)->first();
         $totalBudget = $cycle ? (float)$cycle->total_budget : 30000000.00;
 
-        $approvedAmount = (float)Application::whereIn('stage', ['approved', 'awarded', 'paid'])->sum('approved_amount');
-        $paidAmount = (float)Payment::where('status', 'cleared')->sum('amount');
+        $approvedAmount = (float)(clone $appQuery)->whereIn('stage', ['approved', 'awarded', 'paid'])->sum('approved_amount');
+        $paidAmount = (float)Payment::where('status', 'cleared')
+            ->when($constituencyId, function ($q) use ($constituencyId) {
+                $q->whereHas('application', fn($aq) => $aq->where('constituency_id', $constituencyId));
+            })
+            ->sum('amount');
 
         $pendingAmount = max(0.0, $approvedAmount - $paidAmount);
         $balanceRemaining = max(0.0, $totalBudget - $approvedAmount);
 
-        $batches = PaymentBatch::with(['cycle', 'creator', 'approver'])
-            ->withCount('payments')
-            ->latest()
-            ->get();
+        $batches = $batchQuery->latest()->get();
 
-        $readyForPayment = Application::with(['institution', 'ward'])
+        $readyForPayment = (clone $appQuery)->with(['institution', 'ward'])
             ->where('stage', 'approved')
             ->get();
 

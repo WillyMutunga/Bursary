@@ -12,14 +12,24 @@ use Illuminate\Http\Request;
 
 class PublicPortalController extends Controller
 {
-    public function statistics()
+    public function statistics(Request $request)
     {
-        $activeCycle = BursaryCycle::where('is_active', true)->first();
+        $constituencyId = $request->query('constituency_id');
 
-        $applicationsReceived = Application::count();
-        $applicationsVerified = Application::whereIn('stage', ['committee_review', 'approved', 'awarded', 'paid'])->count();
-        $beneficiaries = Application::whereIn('stage', ['approved', 'awarded', 'paid'])->count();
-        $fundsAllocated = Application::whereIn('stage', ['approved', 'awarded', 'paid'])->sum('approved_amount');
+        $cycleQuery = BursaryCycle::where('is_active', true);
+        $appQuery = Application::query();
+
+        if ($constituencyId) {
+            $cycleQuery->where('constituency_id', $constituencyId);
+            $appQuery->where('constituency_id', $constituencyId);
+        }
+
+        $activeCycle = $cycleQuery->first() ?: BursaryCycle::where('is_active', true)->first();
+
+        $applicationsReceived = (clone $appQuery)->count();
+        $applicationsVerified = (clone $appQuery)->whereIn('stage', ['committee_review', 'approved', 'awarded', 'paid'])->count();
+        $beneficiaries = (clone $appQuery)->whereIn('stage', ['approved', 'awarded', 'paid'])->count();
+        $fundsAllocated = (clone $appQuery)->whereIn('stage', ['approved', 'awarded', 'paid'])->sum('approved_amount');
 
         return response()->json([
             'success' => true,
@@ -71,14 +81,31 @@ class PublicPortalController extends Controller
         ]);
     }
 
-    public function lookupData()
+    public function lookupData(Request $request)
     {
+        $constituencyId = $request->query('constituency_id');
+
+        $wardsQuery = Ward::query();
+        $cycleQuery = BursaryCycle::where('is_active', true);
+
+        if ($constituencyId) {
+            $wardsQuery->where('constituency_id', $constituencyId);
+            $cycleQuery->where('constituency_id', $constituencyId);
+        }
+
+        $wards = $wardsQuery->orderBy('name', 'asc')->get();
+        if ($wards->isEmpty() && $constituencyId) {
+            $wards = Ward::orderBy('name', 'asc')->get();
+        }
+
+        $activeCycle = $cycleQuery->first() ?: BursaryCycle::where('is_active', true)->first();
+
         return response()->json([
             'success' => true,
-            'wards' => Ward::all(),
-            'institutions' => Institution::all(),
+            'wards' => $wards,
+            'institutions' => Institution::orderBy('name', 'asc')->get(),
             'categories' => BursaryCategory::all(),
-            'active_cycle' => BursaryCycle::where('is_active', true)->first(),
+            'active_cycle' => $activeCycle,
         ]);
     }
 }

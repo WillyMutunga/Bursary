@@ -92,8 +92,14 @@ export const api = {
   addConstituencyWard: (id, data) => request(`/constituencies/${id}/wards`, { method: 'POST', body: data }),
 
   // Public Portal
-  getStatistics: () => request('/public/statistics'),
-  getLookupData: () => request('/public/lookup-data'),
+  getStatistics: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/public/statistics${qs ? `?${qs}` : ''}`);
+  },
+  getLookupData: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/public/lookup-data${qs ? `?${qs}` : ''}`);
+  },
   lookupStatus: (query) => request('/public/lookup-status', { method: 'POST', body: { query } }),
   verifyAwardHash: (hash) => request(`/verify/award/${hash}`),
 

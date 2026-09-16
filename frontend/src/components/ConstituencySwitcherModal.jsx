@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { useTenant } from '../context/TenantContext';
-import { Building2, Search, MapPin, Check, X, Shield, ArrowRight, Plus } from 'lucide-react';
+import { Building2, Search, MapPin, Check, X, Shield, ArrowRight, Plus, Link2 } from 'lucide-react';
 
 export default function ConstituencySwitcherModal({ onOpenSuperAdmin }) {
   const {
     currentConstituency,
     availableConstituencies,
     selectConstituency,
+    getShareableLink,
     isSwitcherOpen,
     setIsSwitcherOpen
   } = useTenant();
 
   const [query, setQuery] = useState('');
+  const [copiedCode, setCopiedCode] = useState(null);
 
   if (!isSwitcherOpen) return null;
 
@@ -74,39 +76,63 @@ export default function ConstituencySwitcherModal({ onOpenSuperAdmin }) {
               return (
                 <div
                   key={c.id || c.code}
-                  onClick={() => selectConstituency(c)}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between text-left ${
+                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between text-left ${
                     isSelected
                       ? 'border-[#0B6B3A] bg-emerald-50/60 ring-2 ring-[#0B6B3A]/30 shadow-sm'
                       : 'border-slate-200 bg-white hover:border-[#0B6B3A]/40 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                        {c.code || 'CDF'}
-                      </span>
-                      <h3 className="font-bold text-slate-900 text-base mt-1">
-                        {c.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-emerald-600" />
-                        <span>{c.county || 'Kenya'}</span>
-                      </p>
-                    </div>
-
-                    {isSelected && (
-                      <div className="w-6 h-6 rounded-full bg-[#0B6B3A] text-white flex items-center justify-center shrink-0">
-                        <Check className="w-3.5 h-3.5" />
+                  <div
+                    onClick={() => selectConstituency(c)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                          {c.code || 'CDF'}
+                        </span>
+                        <h3 className="font-bold text-slate-900 text-base mt-1">
+                          {c.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3 text-emerald-600" />
+                          <span>{c.county || 'Kenya'}</span>
+                        </p>
                       </div>
-                    )}
+
+                      {isSelected && (
+                        <div className="w-6 h-6 rounded-full bg-[#0B6B3A] text-white flex items-center justify-center shrink-0">
+                          <Check className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-2 border-t border-slate-100/80 flex items-center justify-between text-[11px] text-slate-600">
-                    <span className="truncate max-w-[160px]">{c.mp_name || 'Hon. MP'}</span>
-                    <span className="font-semibold text-emerald-800 bg-emerald-100/60 px-2 py-0.5 rounded text-[10px]">
-                      {c.wards_count !== undefined ? `${c.wards_count} Wards` : (c.wards?.length ? `${c.wards.length} Wards` : 'Active')}
-                    </span>
+                    <span className="truncate max-w-[140px]">{c.mp_name || 'Hon. MP'}</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const link = getShareableLink ? getShareableLink(c) : window.location.origin + '?c=' + (c.slug || c.code);
+                          navigator.clipboard?.writeText(link);
+                          setCopiedCode(c.code || c.slug);
+                          setTimeout(() => setCopiedCode(null), 2000);
+                        }}
+                        className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors"
+                        title="Copy direct portal link"
+                      >
+                        {copiedCode === (c.code || c.slug) ? (
+                          <span className="text-[10px] text-emerald-700 font-bold">Copied!</span>
+                        ) : (
+                          <Link2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <span className="font-semibold text-emerald-800 bg-emerald-100/60 px-2 py-0.5 rounded text-[10px]">
+                        {c.wards_count !== undefined ? `${c.wards_count} Wards` : (c.wards?.length ? `${c.wards.length} Wards` : 'Active')}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );

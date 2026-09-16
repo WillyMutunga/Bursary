@@ -16,7 +16,10 @@ class VerificationOfficerController extends Controller
 {
     public function queue(Request $request)
     {
-        $query = Application::with(['ward', 'institution', 'documents', 'identityVerifications', 'fieldVerifications']);
+        $constituencyId = $request->query('constituency_id') ?: ($request->user() ? $request->user()->constituency_id : null);
+        if ($constituencyId) {
+            $query->where('constituency_id', $constituencyId);
+        }
 
         if ($request->filled('ward_id')) {
             $query->where('ward_id', $request->ward_id);

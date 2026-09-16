@@ -101,7 +101,22 @@ export function TenantProvider({ children }) {
     setIsSwitcherOpen(false);
   };
 
+  const getShareableLink = (constituency) => {
+    if (typeof window === 'undefined') return '';
+    const slugOrCode = constituency?.slug || constituency?.code || currentConstituency?.slug || 'kibwezi-west';
+    const baseUrl = window.location.origin + window.location.pathname;
+    return `${baseUrl}?c=${encodeURIComponent(slugOrCode)}`;
+  };
+
   useEffect(() => {
+    // Check URL parameters for direct deep-linking
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const deepLink = urlParams.get('c') || urlParams.get('constituency');
+      if (deepLink) {
+        fetchSingleConstituency(deepLink);
+      }
+    }
     fetchConstituencies();
   }, []);
 
@@ -114,6 +129,7 @@ export function TenantProvider({ children }) {
         isSwitcherOpen,
         setIsSwitcherOpen,
         selectConstituency,
+        getShareableLink,
         refreshConstituency: () => fetchSingleConstituency(currentConstituency?.id || 1),
         reloadAllConstituencies: fetchConstituencies,
       }}
