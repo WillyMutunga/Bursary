@@ -77,6 +77,20 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  // Generic HTTP Methods
+  get: (endpoint, options = {}) => request(endpoint, { ...options, method: 'GET' }),
+  post: (endpoint, body, options = {}) => request(endpoint, { ...options, method: 'POST', body }),
+  put: (endpoint, body, options = {}) => request(endpoint, { ...options, method: 'PUT', body }),
+  patch: (endpoint, body, options = {}) => request(endpoint, { ...options, method: 'PATCH', body }),
+  delete: (endpoint, options = {}) => request(endpoint, { ...options, method: 'DELETE' }),
+
+  // Multi-Tenancy Constituencies
+  getConstituencies: () => request('/constituencies'),
+  getConstituency: (idOrSlug) => request(`/constituencies/${idOrSlug}`),
+  createConstituency: (data) => request('/constituencies', { method: 'POST', body: data }),
+  updateConstituency: (id, data) => request(`/constituencies/${id}`, { method: 'PUT', body: data }),
+  addConstituencyWard: (id, data) => request(`/constituencies/${id}/wards`, { method: 'POST', body: data }),
+
   // Public Portal
   getStatistics: () => request('/public/statistics'),
   getLookupData: () => request('/public/lookup-data'),

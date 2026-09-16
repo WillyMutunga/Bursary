@@ -113,23 +113,23 @@ export default function ConstituencyManagementModal({ isOpen, onClose }) {
         : [];
 
       const payload = {
-        name: formData.name,
-        code: formData.code,
-        county: formData.county,
-        mp_name: formData.mp_name,
-        mp_title: formData.mp_title,
-        mp_message: formData.mp_message,
-        fund_account_manager: formData.fund_account_manager,
-        office_postal_address: formData.office_postal_address,
-        office_location: formData.office_location,
-        office_email: formData.office_email,
-        office_phone: formData.office_phone,
-        primary_color: formData.primary_color,
+        name: formData.name?.trim(),
+        code: formData.code?.trim(),
+        county: formData.county?.trim(),
+        mp_name: formData.mp_name?.trim() || null,
+        mp_title: formData.mp_title?.trim() || 'Member of National Assembly',
+        mp_message: formData.mp_message?.trim() || null,
+        fund_account_manager: formData.fund_account_manager?.trim() || null,
+        office_postal_address: formData.office_postal_address?.trim() || null,
+        office_location: formData.office_location?.trim() || null,
+        office_email: formData.office_email?.trim() || null,
+        office_phone: formData.office_phone?.trim() || null,
+        primary_color: formData.primary_color?.trim() || '#0B6B3A',
         wards: wardNames.map(w => ({ name: w })),
-        admin_name: formData.admin_name,
-        admin_email: formData.admin_email,
-        admin_password: formData.admin_password,
-        admin_phone: formData.admin_phone,
+        admin_name: formData.admin_name?.trim() || null,
+        admin_email: formData.admin_email?.trim() || null,
+        admin_password: formData.admin_password?.trim() || null,
+        admin_phone: formData.admin_phone?.trim() || null,
       };
 
       const res = await api.post('/constituencies', payload);
@@ -159,7 +159,21 @@ export default function ConstituencyManagementModal({ isOpen, onClose }) {
     setSuccessMsg('');
 
     try {
-      const res = await api.put(`/constituencies/${selectedConst.id}`, formData);
+      const payload = {
+        name: formData.name?.trim(),
+        code: formData.code?.trim(),
+        county: formData.county?.trim(),
+        mp_name: formData.mp_name?.trim() || null,
+        mp_title: formData.mp_title?.trim() || 'Member of National Assembly',
+        mp_message: formData.mp_message?.trim() || null,
+        fund_account_manager: formData.fund_account_manager?.trim() || null,
+        office_postal_address: formData.office_postal_address?.trim() || null,
+        office_location: formData.office_location?.trim() || null,
+        office_email: formData.office_email?.trim() || null,
+        office_phone: formData.office_phone?.trim() || null,
+        primary_color: formData.primary_color?.trim() || '#0B6B3A',
+      };
+      const res = await api.put(`/constituencies/${selectedConst.id}`, payload);
       if (res && (res.success || res.data)) {
         setSuccessMsg(`Constituency "${formData.name}" updated successfully!`);
         await reloadAllConstituencies();
