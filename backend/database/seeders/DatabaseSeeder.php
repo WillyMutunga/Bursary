@@ -6,6 +6,7 @@ use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\BursaryCategory;
 use App\Models\BursaryCycle;
+use App\Models\Constituency;
 use App\Models\CommitteeDecision;
 use App\Models\Document;
 use App\Models\FieldVerification;
@@ -27,12 +28,35 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // 0. Primary Constituency Tenant (Kibwezi West)
+        $constituency = Constituency::updateOrCreate(
+            ['code' => 'KBW-015'],
+            [
+                'name' => 'Kibwezi West',
+                'slug' => 'kibwezi-west',
+                'code' => 'KBW-015',
+                'county' => 'Makueni County',
+                'mp_name' => 'Hon. Dr. Mwengi Mutuse, MP',
+                'mp_title' => 'Member of National Assembly',
+                'mp_photo_url' => 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400',
+                'mp_message' => 'Committed to transparent, merit-based and equitable bursary distribution to empower every deserving student in Kibwezi West.',
+                'fund_account_manager' => 'Constituency Fund Account Manager',
+                'office_postal_address' => 'P.O. Box 128 - 90137, Kibwezi, Kenya',
+                'office_location' => 'NG-CDF Office Building, Makindu / Kibwezi Town',
+                'office_email' => 'kibweziwest@ngcdf.go.ke',
+                'office_phone' => '+254 700 000 000',
+                'primary_color' => '#0B6B3A',
+                'is_active' => true,
+            ]
+        );
+
         // 1. Single Super Admin User (Willy / William#20)
         // All staff roles (Verification, Committee, Finance, School) are created by Super Admin via User Management.
         // Citizen applicants register themselves via Public Registration.
         $superAdmin = User::updateOrCreate(
             ['email' => 'admin@ngcdf.go.ke'],
             [
+                'constituency_id' => $constituency->id,
                 'name' => 'Willy',
                 'email' => 'admin@ngcdf.go.ke',
                 'phone' => '+254 700 000 000',
@@ -46,12 +70,12 @@ class DatabaseSeeder extends Seeder
 
         // 2. Wards (Kibwezi West Constituency)
         $wards = [
-            ['name' => 'Emali / Mulala Ward', 'code' => 'KBW-01', 'population' => 45000, 'budget_allocation' => 5500000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Francis Musyoka'],
-            ['name' => 'Nguu / Masumba Ward', 'code' => 'KBW-02', 'population' => 38000, 'budget_allocation' => 5000000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Daniel Kimanzi'],
-            ['name' => 'Nguumo Ward', 'code' => 'KBW-03', 'population' => 42000, 'budget_allocation' => 5200000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Geoffrey Musyoki'],
-            ['name' => 'Makindu Ward', 'code' => 'KBW-04', 'population' => 52000, 'budget_allocation' => 6000000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Jackson Muthama'],
-            ['name' => 'Kikumbulyu North Ward', 'code' => 'KBW-05', 'population' => 36000, 'budget_allocation' => 4800000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Onesmus Mutinda'],
-            ['name' => 'Kikumbulyu South Ward', 'code' => 'KBW-06', 'population' => 39000, 'budget_allocation' => 5000000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Peter Mwololo'],
+            ['name' => 'Emali / Mulala Ward', 'code' => 'KBW-01', 'population' => 45000, 'budget_allocation' => 5500000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Francis Musyoka', 'constituency_id' => $constituency->id],
+            ['name' => 'Nguu / Masumba Ward', 'code' => 'KBW-02', 'population' => 38000, 'budget_allocation' => 5000000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Daniel Kimanzi', 'constituency_id' => $constituency->id],
+            ['name' => 'Nguumo Ward', 'code' => 'KBW-03', 'population' => 42000, 'budget_allocation' => 5200000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Geoffrey Musyoki', 'constituency_id' => $constituency->id],
+            ['name' => 'Makindu Ward', 'code' => 'KBW-04', 'population' => 52000, 'budget_allocation' => 6000000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Jackson Muthama', 'constituency_id' => $constituency->id],
+            ['name' => 'Kikumbulyu North Ward', 'code' => 'KBW-05', 'population' => 36000, 'budget_allocation' => 4800000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Onesmus Mutinda', 'constituency_id' => $constituency->id],
+            ['name' => 'Kikumbulyu South Ward', 'code' => 'KBW-06', 'population' => 39000, 'budget_allocation' => 5000000.00, 'sub_county' => 'Kibwezi West', 'representative_name' => 'Hon. Peter Mwololo', 'constituency_id' => $constituency->id],
         ];
         foreach ($wards as $w) {
             Ward::create($w);
@@ -74,6 +98,7 @@ class DatabaseSeeder extends Seeder
 
         // 4. Bursary Cycle
         $cycle = BursaryCycle::create([
+            'constituency_id' => $constituency->id,
             'title' => '2026/2027 Financial Year (Cycle 1)',
             'academic_year' => '2026/2027',
             'total_budget' => 30000000.00,

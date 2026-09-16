@@ -16,6 +16,11 @@ class PaymentBatch extends Model
         'disbursed_at' => 'datetime',
     ];
 
+    public function constituency()
+    {
+        return $this->belongsTo(Constituency::class);
+    }
+
     public function cycle()
     {
         return $this->belongsTo(BursaryCycle::class, 'cycle_id');

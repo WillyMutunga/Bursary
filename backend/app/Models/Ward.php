@@ -10,6 +10,7 @@ class Ward extends Model
     use HasFactory;
 
     protected $fillable = [
+        'constituency_id',
         'name',
         'code',
         'sub_county',
@@ -17,6 +18,11 @@ class Ward extends Model
         'budget_allocation',
         'representative_name',
     ];
+
+    public function constituency()
+    {
+        return $this->belongsTo(Constituency::class);
+    }
 
     public function applications()
     {

@@ -16,6 +16,11 @@ class AuditLog extends Model
         'new_values' => 'array',
     ];
 
+    public function constituency()
+    {
+        return $this->belongsTo(Constituency::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

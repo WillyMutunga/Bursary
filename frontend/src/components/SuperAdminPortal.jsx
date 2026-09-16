@@ -16,6 +16,7 @@ export default function SuperAdminPortal({
   onSelectSubTab,
   onOpenDossierModal,
   currentUser,
+  onOpenConstituencyManager,
 }) {
   const [internalSubTab, setInternalSubTab] = useState('overview');
   const activeSubTab = propActiveSubTab || internalSubTab;
@@ -441,6 +442,19 @@ export default function SuperAdminPortal({
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
               Executive authority over bursary intake windows, ward budget quotas, multi-role staff access, and statutory compliance audits.
             </p>
+
+            {onOpenConstituencyManager && (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={onOpenConstituencyManager}
+                  className="inline-flex items-center gap-2 bg-[#D4A72C] hover:bg-amber-400 text-[#0F172A] font-black text-xs px-4 py-2.5 rounded-xl shadow-lg transition-all hover:scale-105 cursor-pointer"
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Constituency & Multi-Tenancy Master</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Application Window Governance Switch */}

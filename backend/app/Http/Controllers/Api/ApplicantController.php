@@ -287,7 +287,10 @@ class ApplicantController extends Controller
         $appCount = Application::where('cycle_id', $cycleId)->count() + 1;
         $appNumber = 'CDF/BURS/2026/' . str_pad($appCount, 6, '0', STR_PAD_LEFT);
 
+        $constituencyId = $request->input('constituency_id') ?: ($user ? $user->constituency_id : 1);
+
         $appPayload = array_merge($appData, [
+            'constituency_id' => $constituencyId,
             'user_id' => $userId,
             'cycle_id' => $cycleId,
             'stage' => 'under_verification',

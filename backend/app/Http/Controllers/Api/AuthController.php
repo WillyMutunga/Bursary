@@ -141,6 +141,7 @@ class AuthController extends Controller
             'token' => $token,
             'user' => [
                 'id' => $user->id,
+                'constituency_id' => $user->constituency_id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
@@ -162,6 +163,7 @@ class AuthController extends Controller
             'phone' => 'required|string|max:30',
             'password' => 'required|string|min:6',
             'ward_id' => 'nullable|integer',
+            'constituency_id' => 'nullable|integer',
         ], [
             'email.unique' => 'An account with this email address already exists. Please log in with your email or ID.',
             'national_id.unique' => 'An account with this National ID number already exists. Please log in with your ID number.',
@@ -177,6 +179,7 @@ class AuthController extends Controller
         }
 
         $user = User::create([
+            'constituency_id' => $request->input('constituency_id') ?: 1,
             'name' => trim($request->name),
             'email' => strtolower(trim($request->email)),
             'national_id' => trim($request->national_id),
@@ -205,6 +208,7 @@ class AuthController extends Controller
             'token' => $token,
             'user' => [
                 'id' => $user->id,
+                'constituency_id' => $user->constituency_id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,

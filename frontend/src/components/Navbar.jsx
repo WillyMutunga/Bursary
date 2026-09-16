@@ -1,5 +1,6 @@
 import React from 'react';
-import { Shield, LogIn, UserPlus, LogOut, ArrowRight, User, Sparkles, Activity, Bell, Search, Globe, ChevronRight } from 'lucide-react';
+import { Shield, LogIn, UserPlus, LogOut, ArrowRight, User, Sparkles, Activity, Bell, Search, Globe, ChevronRight, Building2, ChevronDown } from 'lucide-react';
+import { useTenant } from '../context/TenantContext';
 
 export default function Navbar({
   authSession,
@@ -11,7 +12,9 @@ export default function Navbar({
   onOpenAuthModal,
   onSelectRole,
   onToggleMobileSidebar,
+  onOpenConstituencyManager,
 }) {
+  const { currentConstituency, setIsSwitcherOpen } = useTenant();
   const triggerAuth = onOpenAuthModal || onOpenAuth || (() => {});
   const role = authSession ? authSession.role : (propActiveRole || 'public');
   const isPublic = !role || role === 'public';
@@ -65,7 +68,7 @@ export default function Navbar({
                   </span>
                 </div>
                 <h1 className="text-xs sm:text-sm font-black text-white uppercase tracking-tight group-hover:text-emerald-300 transition-colors">
-                  NG-CDF KIBWEZI WEST CONSTITUENCY
+                  NG-CDF {currentConstituency?.name?.toUpperCase() || 'KIBWEZI WEST'} CONSTITUENCY
                 </h1>
                 <p className="text-[10px] text-emerald-400/90 font-semibold tracking-wide">
                   Autonomous Bursary Management & Decision-Support System
@@ -74,11 +77,23 @@ export default function Navbar({
             </div>
 
             {/* Public Action Buttons */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              {/* Constituency Selector Button */}
+              <button
+                type="button"
+                onClick={() => setIsSwitcherOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-200 bg-slate-800/90 hover:bg-slate-700 rounded-xl border border-slate-700 shadow-sm transition-all cursor-pointer"
+                title="Select different constituency"
+              >
+                <Building2 className="w-3.5 h-3.5 text-[#D4A72C]" />
+                <span className="truncate max-w-[130px]">{currentConstituency?.name || 'Constituency'}</span>
+                <ChevronDown className="w-3 h-3 text-slate-400" />
+              </button>
+
               <button
                 type="button"
                 onClick={() => triggerAuth('login')}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-200 bg-slate-800/90 hover:bg-slate-700 rounded-xl border border-slate-700 shadow-sm transition-all duration-200 hover:scale-105 hover:text-white cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-xs font-bold text-slate-200 bg-slate-800/90 hover:bg-slate-700 rounded-xl border border-slate-700 shadow-sm transition-all duration-200 hover:scale-105 hover:text-white cursor-pointer active:scale-95"
               >
                 <LogIn className="w-3.5 h-3.5 text-[#D4A72C]" /> Portal Sign In
               </button>
@@ -86,9 +101,9 @@ export default function Navbar({
               <button
                 type="button"
                 onClick={() => triggerAuth('register')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black text-white bg-gradient-to-r from-[#0B6B3A] to-[#074726] hover:from-[#0d8246] hover:to-[#0B6B3A] rounded-xl shadow-lg shadow-emerald-950/50 border border-emerald-500/50 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 text-xs font-black text-white bg-gradient-to-r from-[#0B6B3A] to-[#074726] hover:from-[#0d8246] hover:to-[#0B6B3A] rounded-xl shadow-lg shadow-emerald-950/50 border border-emerald-500/50 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
               >
-                <UserPlus className="w-3.5 h-3.5 text-[#D4A72C]" /> New Student Register
+                <UserPlus className="w-3.5 h-3.5 text-[#D4A72C]" /> New Register
               </button>
             </div>
 
@@ -114,17 +129,35 @@ export default function Navbar({
                 </div>
               </button>
 
-              <div className="flex items-center gap-2 bg-slate-900/95 px-3 py-1.5 rounded-xl border border-slate-800 text-xs shadow-inner">
+              <div
+                onClick={() => setIsSwitcherOpen(true)}
+                className="flex items-center gap-2 bg-slate-900/95 px-3 py-1.5 rounded-xl border border-slate-800 text-xs shadow-inner cursor-pointer hover:border-emerald-500/50 transition-colors"
+                title="Click to switch active constituency tenant"
+              >
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span className="font-black text-slate-200">Kibwezi West NG-CDF</span>
+                <span className="font-black text-slate-200">{currentConstituency?.name || 'Kibwezi West'} NG-CDF</span>
                 <span className="text-slate-600 hidden sm:inline">•</span>
-                <span className="text-[#D4A72C] font-mono font-bold hidden sm:inline">FY 2026/2027 Cycle 1</span>
+                <span className="text-[#D4A72C] font-mono font-bold hidden sm:inline">
+                  {currentConstituency?.county || 'FY 2026/2027'}
+                </span>
+                <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
               </div>
             </div>
 
             {/* Right: Quick Action Controls & User Pill */}
             <div className="flex items-center gap-3">
               
+              {/* Super Admin Manage Constituencies Button */}
+              {safeUser.role === 'admin' && onOpenConstituencyManager && (
+                <button
+                  type="button"
+                  onClick={onOpenConstituencyManager}
+                  className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-950/40 hover:bg-amber-950/70 px-3 py-1.5 rounded-xl border border-amber-600/50 transition-all cursor-pointer shadow-sm"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-[#D4A72C]" /> Tenancy Master
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => onSelectRole && onSelectRole('public')}

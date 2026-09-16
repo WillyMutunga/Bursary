@@ -12,11 +12,12 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
+        'constituency_id',
         'name',
         'email',
         'phone',
         'password',
-        'role', // applicant, verification_officer, committee_member, finance_officer, school_officer, admin
+        'role', // applicant, verification_officer, committee_member, finance_officer, school_officer, admin, super_admin
         'national_id',
         'ward_id',
         'school_id',
@@ -33,6 +34,11 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'is_active' => 'boolean',
     ];
+
+    public function constituency()
+    {
+        return $this->belongsTo(Constituency::class);
+    }
 
     public function applications()
     {

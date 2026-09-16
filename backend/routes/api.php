@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ApplicantController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AwardVerificationController;
 use App\Http\Controllers\Api\CommitteeController;
+use App\Http\Controllers\Api\ConstituencyController;
 use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\PublicPortalController;
 use App\Http\Controllers\Api\SchoolPortalController;
@@ -132,4 +133,15 @@ Route::prefix('admin')->group(function () {
     Route::delete('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'deleteUser']);
     Route::post('/users/{id}/reset-password', [\App\Http\Controllers\Api\AdminController::class, 'resetUserPassword']);
 });
+
+// Multi-Tenancy & Constituencies
+Route::prefix('constituencies')->group(function () {
+    Route::get('/', [ConstituencyController::class, 'index']);
+    Route::get('/{id_or_slug}', [ConstituencyController::class, 'show']);
+    Route::post('/', [ConstituencyController::class, 'store']);
+    Route::put('/{id}', [ConstituencyController::class, 'update']);
+    Route::post('/{id}/wards', [ConstituencyController::class, 'addWard']);
+    Route::delete('/{id}', [ConstituencyController::class, 'destroy']);
+});
+
 

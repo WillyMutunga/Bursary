@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import InstitutionAutocomplete from './InstitutionAutocomplete';
+import { useTenant } from '../context/TenantContext';
 
 export default function ApplicantPortal({
   applications = [],
@@ -20,6 +21,8 @@ export default function ApplicantPortal({
   viewMode = 'dashboard',
   setViewMode,
 }) {
+  const { currentConstituency } = useTenant();
+  const activeWards = currentConstituency?.wards?.length ? currentConstituency.wards : wards;
   const [activeTab, setActiveTab] = useState('overview');
   const [currentStep, setCurrentStep] = useState(1);
   const [isVerifyingId, setIsVerifyingId] = useState(false);
@@ -362,6 +365,7 @@ export default function ApplicantPortal({
 
     const payload = {
       ...formData,
+      constituency_id: currentConstituency?.id || 1,
       guardian_name: guardianName || formData.guardian_name || 'N/A',
       guardian_id: guardianId || formData.guardian_id || '',
       guardian_phone: guardianPhone || formData.guardian_phone || '',
@@ -1049,7 +1053,7 @@ export default function ApplicantPortal({
                       onChange={(e) => setFormData({ ...formData, ward_id: Number(e.target.value) })}
                       className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-[#0B6B3A] outline-none"
                     >
-                      {wards.map((w) => (
+                      {activeWards.map((w) => (
                         <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
                       ))}
                     </select>

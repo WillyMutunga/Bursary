@@ -75,10 +75,50 @@ try {
     DB::connection()->getPdo();
     echo "✓ Connected to: " . DB::connection()->getDatabaseName() . "\n\n";
 
+    echo "1.5 Running Migrations for Multi-Tenancy...\n";
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        echo Artisan::output() . "\n✓ Migrations completed successfully.\n\n";
+    } catch (\Throwable $mEx) {
+        echo "Migration Note: " . $mEx->getMessage() . "\n\n";
+    }
+
+    echo "1.8 Ensuring Primary Constituency (Kibwezi West)...\n";
+    $kibwezi = \App\Models\Constituency::updateOrCreate(
+        ['code' => 'KBW-015'],
+        [
+            'name' => 'Kibwezi West',
+            'slug' => 'kibwezi-west',
+            'code' => 'KBW-015',
+            'county' => 'Makueni County',
+            'mp_name' => 'Hon. Dr. Mwengi Mutuse, MP',
+            'mp_title' => 'Member of National Assembly',
+            'mp_photo_url' => 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400',
+            'mp_message' => 'Committed to transparent, merit-based and equitable bursary distribution to empower every deserving student in Kibwezi West.',
+            'fund_account_manager' => 'Constituency Fund Account Manager',
+            'office_postal_address' => 'P.O. Box 128 - 90137, Kibwezi, Kenya',
+            'office_location' => 'NG-CDF Office Building, Makindu / Kibwezi Town',
+            'office_email' => 'kibweziwest@ngcdf.go.ke',
+            'office_phone' => '+254 700 000 000',
+            'primary_color' => '#0B6B3A',
+            'is_active' => true,
+        ]
+    );
+    echo "✓ Primary Constituency Verified: Kibwezi West (ID: {$kibwezi->id})\n";
+
+    // Backfill any unassigned wards, cycles, applications, payment batches to Kibwezi West
+    \App\Models\Ward::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    \App\Models\BursaryCycle::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    \App\Models\Application::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    \App\Models\PaymentBatch::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    \App\Models\AuditLog::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    echo "✓ Scoped all unassigned records to Kibwezi West tenant.\n\n";
+
     echo "2. Ensuring Super Admin User...\n";
     $admin = User::updateOrCreate(
         ['email' => 'admin@ngcdf.go.ke'],
         [
+            'constituency_id' => $kibwezi->id,
             'name' => 'Willy',
             'email' => 'admin@ngcdf.go.ke',
             'phone' => '+254 700 000 000',

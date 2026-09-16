@@ -18,6 +18,9 @@ import AwardLetterModal from './components/AwardLetterModal';
 import StatusTrackerModal from './components/StatusTrackerModal';
 import ApplicationDossierModal from './components/ApplicationDossierModal';
 import InstitutionalAwardLetterModal, { normalizeInstitutionName } from './components/InstitutionalAwardLetterModal';
+import ConstituencySwitcherModal from './components/ConstituencySwitcherModal';
+import ConstituencyManagementModal from './components/ConstituencyManagementModal';
+import { useTenant } from './context/TenantContext';
 
 import { api } from './api/client';
 import {
@@ -396,6 +399,7 @@ export default function App() {
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isWindowOpen, setIsWindowOpen] = useState(true);
+  const [isConstManagerOpen, setIsConstManagerOpen] = useState(false);
 
   const handleToggleWindow = async (forcedState) => {
     const nextState = typeof forcedState === 'boolean' ? forcedState : !isWindowOpen;
@@ -415,10 +419,15 @@ export default function App() {
       {/* Official Government Top Header & Navigation */}
       <Navbar
         authSession={authSession}
-        onOpenAuthModal={(mode) => setAuthModal({ isOpen: true, mode })}
+        activeRole={currentRole}
+        currentUser={authSession?.user}
         onLogout={handleLogout}
+        onOpenStatusModal={() => setIsStatusModalOpen(true)}
+        onOpenAuth={(mode) => setAuthModal({ isOpen: true, mode: mode || 'login' })}
+        onOpenAuthModal={(mode) => setAuthModal({ isOpen: true, mode: mode || 'login' })}
         onSelectRole={handleSelectRole}
-        onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+        onOpenConstituencyManager={() => setIsConstManagerOpen(true)}
       />
 
       {/* Main Dynamic Workspace Area */}
@@ -516,6 +525,7 @@ export default function App() {
                       }
                       onOpenDossierModal={handleOpenDossierModal}
                       currentUser={authSession.user}
+                      onOpenConstituencyManager={() => setIsConstManagerOpen(true)}
                     />
                   )}
 
@@ -547,6 +557,17 @@ export default function App() {
           onSelectRole={handleSelectRole}
         />
       )}
+
+      {/* Multi-Tenancy Constituency Switcher Modal */}
+      <ConstituencySwitcherModal
+        onOpenSuperAdmin={() => setIsConstManagerOpen(true)}
+      />
+
+      {/* Super Admin Constituency Tenancy Management Console */}
+      <ConstituencyManagementModal
+        isOpen={isConstManagerOpen}
+        onClose={() => setIsConstManagerOpen(false)}
+      />
 
       {/* Authentication & Role Access Modal */}
       <AuthScreen

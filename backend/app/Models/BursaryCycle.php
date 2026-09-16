@@ -10,6 +10,7 @@ class BursaryCycle extends Model
     use HasFactory;
 
     protected $fillable = [
+        'constituency_id',
         'title',
         'academic_year',
         'total_budget',
@@ -30,6 +31,11 @@ class BursaryCycle extends Model
         'allocated_amount' => 'decimal:2',
         'disbursed_amount' => 'decimal:2',
     ];
+
+    public function constituency()
+    {
+        return $this->belongsTo(Constituency::class);
+    }
 
     public function applications()
     {

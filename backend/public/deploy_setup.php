@@ -75,39 +75,188 @@ try {
     DB::connection()->getPdo();
     echo "✓ Connected to: " . DB::connection()->getDatabaseName() . "\n\n";
 
-    echo "2. Wiping all existing user accounts...\n";
+    echo "1.5 Running Migrations for Multi-Tenancy...\n";
     try {
-        DB::statement('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
-    } catch (\Exception $e) {
-        DB::table('users')->delete();
+        Artisan::call('migrate', ['--force' => true]);
+        echo Artisan::output() . "\n✓ Migrations completed successfully.\n\n";
+    } catch (\Throwable $mEx) {
+        echo "Migration Note: " . $mEx->getMessage() . "\n\n";
     }
-    echo "✓ All previous users cleared.\n\n";
 
-    echo "3. Creating Single Super Admin User...\n";
-    $admin = User::create([
-        'name' => 'Willy',
-        'email' => 'admin@ngcdf.go.ke',
-        'phone' => '+254 700 000 000',
-        'role' => 'admin',
-        'national_id' => '41354126',
-        'password' => Hash::make('William#20'),
-        'designation' => 'Constituency Fund Manager / Super Admin',
-        'is_active' => true,
-    ]);
-    echo "✓ Super Admin Created Successfully!\n";
-    echo "• Username: Willy\n";
-    echo "• Email: admin@ngcdf.go.ke\n";
-    echo "• Password: William#20\n\n";
+    echo "1.8 Ensuring Primary Constituency (Kibwezi West)...\n";
+    $kibwezi = \App\Models\Constituency::updateOrCreate(
+        ['code' => 'KBW-015'],
+        [
+            'name' => 'Kibwezi West',
+            'slug' => 'kibwezi-west',
+            'code' => 'KBW-015',
+            'county' => 'Makueni County',
+            'mp_name' => 'Hon. Dr. Mwengi Mutuse, MP',
+            'mp_title' => 'Member of National Assembly',
+            'mp_photo_url' => 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400',
+            'mp_message' => 'Committed to transparent, merit-based and equitable bursary distribution to empower every deserving student in Kibwezi West.',
+            'fund_account_manager' => 'Constituency Fund Account Manager',
+            'office_postal_address' => 'P.O. Box 128 - 90137, Kibwezi, Kenya',
+            'office_location' => 'NG-CDF Office Building, Makindu / Kibwezi Town',
+            'office_email' => 'kibweziwest@ngcdf.go.ke',
+            'office_phone' => '+254 700 000 000',
+            'primary_color' => '#0B6B3A',
+            'is_active' => true,
+        ]
+    );
+    echo "✓ Primary Constituency Verified: Kibwezi West (ID: {$kibwezi->id})\n";
 
-    echo "4. Clearing and optimizing application caches...\n";
+    // Backfill any unassigned wards, cycles, applications, payment batches to Kibwezi West
+    \App\Models\Ward::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    \App\Models\BursaryCycle::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    \App\Models\Application::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    \App\Models\PaymentBatch::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    \App\Models\AuditLog::whereNull('constituency_id')->update(['constituency_id' => $kibwezi->id]);
+    echo "✓ Scoped all unassigned records to Kibwezi West tenant.\n\n";
+
+    echo "2. Ensuring Super Admin User...\n";
+    $admin = User::updateOrCreate(
+        ['email' => 'admin@ngcdf.go.ke'],
+        [
+            'constituency_id' => $kibwezi->id,
+            'name' => 'Willy',
+            'email' => 'admin@ngcdf.go.ke',
+            'phone' => '+254 700 000 000',
+            'role' => 'admin',
+            'national_id' => '41354126',
+            'password' => Hash::make('William#20'),
+            'designation' => 'Constituency Fund Manager / Super Admin',
+            'is_active' => true,
+        ]
+    );
+    echo "✓ Super Admin Verified!\n";
+    echo "• Username: Willy\n• Email: admin@ngcdf.go.ke\n• National ID: 41354126\n\n";
+
+    // Clean up any extra dummy staff accounts if they exist
+    User::whereIn('email', [
+        'verification@ngcdf.go.ke',
+        'finance@ngcdf.go.ke',
+        'school@ngcdf.go.ke',
+    ])->delete();
+
+    echo "3. Ensuring Committee Member Christine Mbatha (ID: 12345678)...\n";
+    $christine = User::updateOrCreate(
+        ['email' => 'committee@ngcdf.go.ke'],
+        [
+            'name' => 'Christine Mbatha',
+            'email' => 'committee@ngcdf.go.ke',
+            'phone' => '+254 700 000 000',
+            'role' => 'committee_member',
+            'national_id' => '12345678',
+            'password' => Hash::make('William#20'),
+            'designation' => 'Constituency Bursary Committee Member',
+            'ward_id' => 1,
+            'is_active' => true,
+        ]
+    );
+    echo "✓ Committee Member Verified: Christine Mbatha (ID: 12345678, committee@ngcdf.go.ke)\n\n";
+
+    echo "\n4. Ensuring Baseline Constituency Bursary Application...\n";
+    $applicant = User::where('national_id', '41354125')->first();
+    $cycle = \App\Models\BursaryCycle::firstOrCreate(
+        ['academic_year' => '2026/2027'],
+        [
+            'title' => '2026/2027 Financial Year (Cycle 1)',
+            'total_budget' => 30000000.00,
+            'allocated_amount' => 10000.00,
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-09-30',
+            'is_active' => true,
+            'status' => 'committee_review',
+        ]
+    );
+
+    // Ensure columns exist on applications table
+    if (\Illuminate\Support\Facades\Schema::hasTable('applications')) {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('applications', 'institution_postal_address')) {
+            \Illuminate\Support\Facades\Schema::table('applications', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->string('institution_postal_address')->nullable();
+                $table->string('institution_campus_branch')->nullable();
+            });
+            echo "✓ Added columns institution_postal_address and institution_campus_branch to applications table.\n";
+        }
+    }
+
+    // Ensure Kenyatta University exists in institutions table
+    $ku = \App\Models\Institution::firstOrCreate(
+        ['name' => 'Kenyatta University (KU)'],
+        [
+            'code' => 'KU-002',
+            'type' => 'university',
+            'county' => 'Nairobi',
+            'contact_email' => 'finance@ku.ac.ke',
+            'contact_phone' => '+254 20 8710901',
+            'bank_name' => 'National Bank of Kenya',
+            'bank_account_no' => '01003000900',
+            'bank_branch' => 'Kenyatta University Branch',
+            'is_verified' => true,
+        ]
+    );
+
+    // Merge any duplicate KENYATTA UNIVERSITY institutions into Kenyatta University (KU)
+    $otherKus = \App\Models\Institution::where('id', '!=', $ku->id)
+        ->whereRaw('LOWER(name) LIKE ?', ['%kenyatta%'])
+        ->get();
+    foreach ($otherKus as $dup) {
+        \App\Models\Application::where('institution_id', $dup->id)->update([
+            'institution_id' => $ku->id,
+            'institution_postal_address' => 'P.O. Box 43844 - 00100, Nairobi',
+            'institution_campus_branch' => 'Main Campus - Along Thika Superhighway',
+        ]);
+        try {
+            $dup->delete();
+        } catch (\Exception $e) {}
+        echo "✓ Consolidated duplicate institution record (ID: {$dup->id}, {$dup->name}) into {$ku->name}\n";
+    }
+
+    if ($applicant) {
+        \App\Models\Application::updateOrCreate(
+            ['application_no' => 'CDF/BURS/2026/000001'],
+            [
+                'cycle_id' => $cycle->id,
+                'user_id' => $applicant->id,
+                'ward_id' => 1,
+                'institution_id' => $ku->id,
+                'institution_type' => 'university',
+                'stage' => 'approved',
+                'full_name' => 'Willy Mutunga',
+                'national_id' => '41354125',
+                'phone' => '0712345678',
+                'admission_no' => 'P01/0018/2022',
+                'course_name' => 'BSC COMPUTER SCIENCE',
+                'year_of_study' => 'Year 2',
+                'institution_postal_address' => 'P.O. Box 43844 - 00100, Nairobi',
+                'institution_campus_branch' => 'Main Campus - Along Thika Superhighway',
+                'fees_payable' => 65000.00,
+                'fees_paid' => 40000.00,
+                'fee_balance' => 25000.00,
+                'requested_amount' => 25000.00,
+                'approved_amount' => 10000.00,
+                'vulnerability_category' => 'General',
+                'score' => 85,
+                'verification_status' => 'verified',
+                'is_disabled' => false,
+                'guardian_monthly_income' => 15000.00,
+            ]
+        );
+        echo "✓ Application CDF/BURS/2026/000001 verified with Kenyatta University postal address in database.\n";
+    }
+
+    echo "\n5. Clearing application caches...\n";
     Artisan::call('config:clear');
     Artisan::call('cache:clear');
     Artisan::call('route:clear');
     echo "✓ System caches cleared.\n\n";
 
     echo "========================================================\n";
-    echo "🎉 COMPLETE! Only Super Admin 'Willy' exists now.\n";
-    echo "All staff roles can be created from the Admin Dashboard.\n";
+    echo "🎉 COMPLETE! Database state verified.\n";
+    echo "• Total Users: " . User::count() . "\n";
+    echo "• Total Applications: " . \App\Models\Application::count() . "\n";
     echo "========================================================\n";
 
 } catch (\Exception $e) {

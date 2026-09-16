@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Shield, Printer, X, Download, Building2, CheckCircle2, QrCode, FileText, ChevronDown } from 'lucide-react';
+import { useTenant } from '../context/TenantContext';
 
 // Number to Words converter (Kenyan Shillings)
 function numberToKenyanWords(num) {
@@ -127,6 +128,7 @@ export default function InstitutionalAwardLetterModal({
   chequeDetails = { chequeNo: 'EFT-2026-992144', batchNo: 'BATCH-2026-08', date: '22nd August 2026' }
 }) {
   if (!isOpen) return null;
+  const { currentConstituency } = useTenant();
 
   // 1. Group beneficiaries by institution from comprehensive application pool with smart normalization
   const instMap = useMemo(() => {
@@ -280,17 +282,17 @@ export default function InstitutionalAwardLetterModal({
               NATIONAL GOVERNMENT CONSTITUENCIES DEVELOPMENT FUND (NG-CDF)
             </h1>
             <h2 className="text-sm font-bold uppercase text-slate-800 font-sans">
-              KIBWEZI WEST CONSTITUENCY
+              {(currentConstituency?.name || 'KIBWEZI WEST').toUpperCase()} CONSTITUENCY
             </h2>
             <p className="text-[10px] text-slate-500 font-sans font-medium">
-              Office of the Constituency Fund Manager | P.O. Box 128 - 90137, Kibwezi | Email: info@kibweziwestngcdf.go.ke
+              Office of the Constituency Fund Manager | {currentConstituency?.office_postal_address || 'P.O. Box 128 - 90137, Kibwezi'} | Email: {currentConstituency?.office_email || 'info@ngcdf.go.ke'}
             </p>
           </div>
 
           {/* Reference & Date (Dynamic) */}
           <div className="flex justify-between items-start text-xs font-sans pt-2">
             <div>
-              <p><strong>Our Ref:</strong> NG-CDF/KBW/BURS/{chequeDetails.batchNo || 'BATCH-2026'}</p>
+              <p><strong>Our Ref:</strong> NG-CDF/{currentConstituency?.code || 'CDF'}/BURS/{chequeDetails.batchNo || 'BATCH-2026'}</p>
               <p><strong>Cheque / EFT Ref:</strong> {chequeDetails.chequeNo || 'EFT-88492011'}</p>
             </div>
             <div className="text-right">
@@ -317,7 +319,7 @@ export default function InstitutionalAwardLetterModal({
           {/* Letter Body Text (Includes Amount in Words) */}
           <div className="space-y-3 text-justify text-xs text-slate-800 leading-normal">
             <p>
-              The Kibwezi West National Government Constituency Development Fund (NG-CDF) Committee is pleased to forward herewith our payment of <strong>KSh {totalAmount.toLocaleString()} ({amountInWords})</strong> in respect of bursary sponsorship awarded to the underlisted students enrolled in your institution for the 2026/2027 Academic Year.
+              The {currentConstituency?.name || 'Constituency'} National Government Constituency Development Fund (NG-CDF) Committee is pleased to forward herewith our payment of <strong>KSh {totalAmount.toLocaleString()} ({amountInWords})</strong> in respect of bursary sponsorship awarded to the underlisted students enrolled in your institution for the 2026/2027 Academic Year.
             </p>
             <p>
               Kindly credit the respective student tuition accounts with the corresponding amounts indicated against their names and issue official receipts acknowledging receipt of these public funds.
@@ -371,7 +373,7 @@ export default function InstitutionalAwardLetterModal({
             <div className="space-y-3">
               <p className="text-[10px] font-bold uppercase text-slate-600">Fund Manager Signature:</p>
               <div className="border-b border-slate-400 pb-1">
-                <span className="font-serif italic font-bold text-slate-900">Willy</span>
+                <span className="font-serif italic font-bold text-slate-900">{currentConstituency?.fund_account_manager || 'Fund Account Manager'}</span>
               </div>
               <p className="text-[9px] text-slate-500">Constituency Fund Manager</p>
             </div>
@@ -379,7 +381,7 @@ export default function InstitutionalAwardLetterModal({
             <div className="space-y-3">
               <p className="text-[10px] font-bold uppercase text-slate-600">Committee Chairperson:</p>
               <div className="border-b border-slate-400 pb-1">
-                <span className="font-serif italic font-bold text-slate-900">Pastor David Musyoka</span>
+                <span className="font-serif italic font-bold text-slate-900">Bursary Committee Chairperson</span>
               </div>
               <p className="text-[9px] text-slate-500">Bursary Committee Chairperson</p>
             </div>
@@ -388,7 +390,7 @@ export default function InstitutionalAwardLetterModal({
             <div className="border-2 border-dashed border-slate-400 rounded-2xl p-2.5 flex flex-col items-center justify-center text-center h-28 bg-slate-50">
               <Shield className="w-5 h-5 text-[#0B6B3A] mb-1" />
               <span className="text-[9px] font-black uppercase text-slate-800 tracking-wider">OFFICIAL NG-CDF STAMP</span>
-              <span className="text-[8px] text-slate-500 font-semibold">Kibwezi West Constituency</span>
+              <span className="text-[8px] text-slate-500 font-semibold">{currentConstituency?.name || 'Constituency'}</span>
               <span className="text-[7px] font-mono text-slate-400 mt-1">[ AFFIX PHYSICAL STAMP ]</span>
             </div>
 
@@ -413,7 +415,7 @@ export default function InstitutionalAwardLetterModal({
 
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-300 space-y-3 text-xs font-sans">
               <p className="text-[11px] text-slate-800 leading-snug">
-                <strong>TO:</strong> The Constituency Fund Manager, Kibwezi West NG-CDF, P.O. Box 128 - 90137, Kibwezi.
+                <strong>TO:</strong> The Constituency Fund Manager, {currentConstituency?.name || 'Constituency'} NG-CDF, {currentConstituency?.office_postal_address || 'P.O. Box Accredited'}.
                 <br />
                 We hereby acknowledge receipt of the bursary disbursement cheque/EFT amounting to <strong>KSh {totalAmount.toLocaleString()} ({amountInWords})</strong> in respect of <strong>{currentBeneficiaries.length}</strong> sponsored student(s) for the 2026/2027 Academic Year. Respective student fee accounts have been duly credited as listed on the schedule.
               </p>
@@ -439,7 +441,7 @@ export default function InstitutionalAwardLetterModal({
               </div>
 
               <p className="text-[9px] text-slate-500 italic text-center pt-1 border-t border-slate-200">
-                * In accordance with NG-CDF statutory guidelines, please detach and return this acknowledgment slip or email a stamped scanned copy to: <strong>receipts@kibweziwestngcdf.go.ke</strong>
+                * In accordance with NG-CDF statutory guidelines, please detach and return this acknowledgment slip or email a stamped scanned copy to: <strong>{currentConstituency?.office_email || 'receipts@ngcdf.go.ke'}</strong>
               </p>
             </div>
           </div>
